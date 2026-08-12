@@ -1,0 +1,22 @@
+# Este repositório é o PAINEL PÚBLICO (GitHub Pages) — só index.html e data/
+# deveriam estar aqui. O restante é ferramenta de trabalho que roda nesta
+# pasta por conveniência, mas não deve ir para o Git.
+#
+# Isto é rede de segurança, não a única defesa: confira sempre "git status"
+# antes de "git add ." num diretório que você não tem certeza do conteúdo.
+
+# Sistema
+.DS_Store
+
+# Documentação de processo (não é conteúdo do painel)
+*.md
+
+# Código e dados do ETL
+iez_market/
+*.py
+fontes.json
+portfolio_edital_5g.csv
+__pycache__/
+
+# Cache local do programa, se algum dia rodar com IEZ_CACHE apontando aqui
+.cache/
