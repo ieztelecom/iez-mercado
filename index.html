@@ -1,0 +1,2080 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mercado — Protótipo Sprint 1 | IEZ Telecom</title>
+<style>
+  /* Tokens herdados do Dashboard IEZ — não inventar valores novos aqui. */
+  :root {
+    --iez:        #F36C00;
+    --ink:        #0f0f0f;
+    --ink-2:      #555555;
+    --ink-3:      #6b6b6b;
+    --muted:      #a0a0a8;
+    --card:       #ffffff;
+    --bg:         #f5f5f7;
+    --line:       #e8e8e8;
+    --line-soft:  rgba(0,0,0,0.04);
+    --radius:     12px;
+    --shadow:     0 12px 32px rgba(0,0,0,0.16);
+    --shadow-sm:  0 1px 2px rgba(0,0,0,0.08);
+
+    --go:      #1a7f4b;
+    --go-bg:   #e7f4ed;
+    --cond:    #a86a00;
+    --cond-bg: #fdf1de;
+    --watch:   #7a6a00;
+    --watch-bg:#f7f3d9;
+    --nogo:    #a32020;
+    --nogo-bg: #fbeaea;
+    --nodata:  #5a5a66;
+    --nodata-bg:#eeeef2;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 13px; line-height: 1.45;
+  }
+  .screen { padding: 28px 36px; display:flex; flex-direction:column; gap:16px; }
+
+  h1 { font-size: 19px; font-weight: 600; letter-spacing:-0.01em; }
+  .header-top { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; }
+  .logo-iez { height:38px; width:auto; flex-shrink:0; }
+  @media (max-width: 640px) { .logo-iez { height:28px; } }
+  h2 { font-size: 13px; font-weight: 600; }
+  .sub { font-size: 12px; color: var(--ink-3); font-weight: 400; }
+
+  .card {
+    background: var(--card); border-radius: var(--radius);
+    border: 1px solid var(--line-soft); box-shadow: var(--shadow-sm);
+  }
+
+  /* --- Banner de proveniência de dados de demonstração --- */
+  .demo-banner {
+    display:flex; gap:10px; align-items:flex-start;
+    background: var(--cond-bg); border:1px solid rgba(168,106,0,0.25);
+    color:#6b4400; border-radius:10px; padding:10px 14px; font-size:12px;
+  }
+  .demo-banner strong { font-weight:600; }
+  #carga.arrastando { border:2px dashed var(--iez); background:rgba(243,108,0,0.06); }
+  #carga code { font-size:11px; background:rgba(0,0,0,0.05); padding:1px 5px; border-radius:4px; }
+
+  /* --- KPIs --- */
+  .kpis { display:grid; grid-template-columns: repeat(5, 1fr); gap:12px; }
+  .kpi { padding:14px 16px; }
+  .kpi .n { font-size:26px; font-weight:600; letter-spacing:-0.02em; line-height:1.1; }
+  .kpi .l { font-size:11px; color:var(--ink-3); text-transform:uppercase; letter-spacing:0.05em; margin-top:4px; }
+  .kpi .dot { width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:6px; vertical-align:middle; }
+
+  /* --- Barra de filtros --- */
+  .toolbar { padding:12px 16px; display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end; }
+  .field { display:flex; flex-direction:column; gap:4px; }
+  .field label { font-size:11px; color:var(--ink-3); text-transform:uppercase; letter-spacing:0.04em; }
+  input[type="search"], select {
+    font: inherit; padding:7px 10px; border:1px solid var(--line); border-radius:8px;
+    background:#fff; color:var(--ink); min-width:150px;
+  }
+  input:focus-visible, select:focus-visible, button:focus-visible, [tabindex]:focus-visible {
+    outline: 2px solid var(--iez); outline-offset: 2px;
+  }
+  .check { display:flex; align-items:center; gap:7px; font-size:12px; padding-bottom:7px; cursor:pointer; }
+  .btn {
+    font: inherit; padding:7px 13px; border-radius:8px; border:1px solid var(--line);
+    background:#fff; color:var(--ink-2); cursor:pointer;
+  }
+  .btn:hover { background: rgba(0,0,0,0.04); color:var(--ink); }
+  .btn-primary { background: var(--iez); border-color: var(--iez); color:#fff; }
+  .btn-primary:hover { background:#dc6100; color:#fff; }
+
+  /* --- Pills de filtro por faixa --- */
+  .pills-faixa { display:flex; flex-wrap:wrap; gap:8px; }
+  .pill {
+    display:inline-flex; align-items:center; gap:7px; font-size:12.5px; font-weight:600;
+    padding:7px 13px; border-radius:20px; border:1.5px solid var(--line); background:#fff;
+    color:var(--ink-2); cursor:pointer; transition:border-color .12s, background .12s;
+  }
+  .pill .n {
+    font-variant-numeric:tabular-nums; font-size:11px; font-weight:700;
+    background:rgba(0,0,0,0.06); padding:1px 7px; border-radius:10px; color:var(--ink-3);
+  }
+  .pill:hover { border-color:var(--muted); }
+  .pill[aria-pressed="true"] { background:var(--ink); border-color:var(--ink); color:#fff; }
+  .pill[aria-pressed="true"] .n { background:rgba(255,255,255,0.22); color:#fff; }
+  .pill.p-go[aria-pressed="true"]    { background:var(--go);    border-color:var(--go); }
+  .pill.p-cond[aria-pressed="true"]  { background:var(--cond);  border-color:var(--cond); }
+  .pill.p-watch[aria-pressed="true"] { background:var(--watch); border-color:var(--watch); }
+  .pill.p-nogo[aria-pressed="true"]  { background:var(--nogo);  border-color:var(--nogo); }
+  .pill.p-nodata[aria-pressed="true"]{ background:var(--nodata);border-color:var(--nodata); }
+  .pill .dot { width:7px; height:7px; border-radius:50%; background:currentColor; }
+  .pill.p-go .dot     { color:var(--go); }
+  .pill.p-cond .dot   { color:var(--cond); }
+  .pill.p-watch .dot  { color:var(--watch); }
+  .pill.p-nogo .dot   { color:var(--nogo); }
+  .pill.p-nodata .dot { color:var(--nodata); }
+  .pill[aria-pressed="true"] .dot { color:#fff; }
+
+  /* --- Painel de calibração de pesos --- */
+  details.weights { padding: 0; }
+  details.weights > summary {
+    padding:12px 16px; cursor:pointer; font-size:12px; font-weight:600; list-style:none;
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+  }
+  details.weights > summary::-webkit-details-marker { display:none; }
+  details.weights > summary::after { content:'▾'; color:var(--ink-3); font-size:11px; }
+  details.weights[open] > summary::after { content:'▴'; }
+  .weights-body { padding: 4px 16px 16px; border-top:1px solid var(--line-soft); }
+  .slider-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(190px,1fr)); gap:14px; margin-top:12px; }
+  .slider-row label { display:flex; justify-content:space-between; font-size:12px; margin-bottom:5px; }
+  .slider-row label span:last-child { font-variant-numeric: tabular-nums; color:var(--ink-3); }
+  input[type="range"] { width:100%; accent-color: var(--iez); }
+  .weights-total { font-size:11px; color:var(--ink-3); margin-top:12px; }
+  .weights-total.bad { color: var(--nogo); font-weight:600; }
+
+  /* --- Tabela --- */
+  table { width:100%; border-collapse: collapse; }
+  thead th {
+    text-align:left; font-size:10.5px; font-weight:600; text-transform:uppercase;
+    letter-spacing:0.06em; color:var(--ink-3); padding:11px 12px;
+    border-bottom:1px solid var(--line); white-space:nowrap; background:#fff;
+    position:sticky; top:0; z-index:5;
+  }
+  thead th[aria-sort] { cursor:pointer; user-select:none; }
+  thead th[aria-sort]:hover { color:var(--ink); }
+  thead th .arrow { opacity:0.35; margin-left:4px; font-size:9px; display:inline-block; }
+  thead th[aria-sort]:hover .arrow { opacity:0.7; }
+  thead th[aria-sort="descending"] .arrow, thead th[aria-sort="ascending"] .arrow { opacity:1; color:var(--iez); }
+  tbody td { padding:10px 12px; border-bottom:1px solid var(--line-soft); vertical-align:middle; }
+  tbody tr { cursor:pointer; }
+  tbody tr:hover { background: rgba(243,108,0,0.05); }
+  tbody tr:focus-visible { outline:2px solid var(--iez); outline-offset:-2px; }
+  .num { text-align:right; font-variant-numeric: tabular-nums; }
+  .rank { color:var(--muted); font-variant-numeric: tabular-nums; width:34px; }
+  .mun { font-weight:600; }
+  .mun small { display:block; font-weight:400; color:var(--ink-3); font-size:11px; }
+
+  .scorewrap { display:flex; align-items:center; gap:9px; min-width:118px; }
+  .bar { flex:1; height:6px; border-radius:3px; background:var(--line); overflow:hidden; }
+  .bar > i { display:block; height:100%; border-radius:3px; background:var(--iez); }
+  .scoreval { font-variant-numeric: tabular-nums; font-weight:600; width:34px; text-align:right; }
+
+  .tag {
+    display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:600;
+    padding:3px 8px; border-radius:20px; white-space:nowrap;
+  }
+  .tag::before { content:''; width:6px; height:6px; border-radius:50%; background:currentColor; }
+  .t-go     { color:var(--go);     background:var(--go-bg); }
+  .t-cond   { color:var(--cond);   background:var(--cond-bg); }
+  .t-watch  { color:var(--watch);  background:var(--watch-bg); }
+  .t-nogo   { color:var(--nogo);   background:var(--nogo-bg); }
+  .t-nodata { color:var(--nodata); background:var(--nodata-bg); }
+
+  .gap { font-weight:600; font-variant-numeric: tabular-nums; }
+  .gap-full { color: var(--go); }
+
+  .obrig {
+    display:inline-block; min-width:22px; text-align:center; font-weight:600;
+    font-variant-numeric: tabular-nums; padding:2px 6px; border-radius:6px;
+    background:rgba(243,108,0,0.12); color:#8a3d00;
+  }
+  .t-own { color:#0f5f7a; background:#e2f1f6; }
+
+  .pdv-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:8px; margin-top:8px; }
+  .pdv { border:1px solid var(--line); border-radius:8px; padding:9px 11px; }
+  .pdv b { display:block; font-size:17px; font-variant-numeric:tabular-nums; }
+  .pdv span { font-size:11px; color:var(--ink-3); }
+  .modelo { border-left:3px solid var(--iez); padding:9px 0 9px 12px; margin-top:10px; }
+  .modelo b { display:block; font-size:12px; }
+  .modelo span { font-size:11.5px; color:var(--ink-2); }
+
+  /* Top 3 ISPs */
+  .top3 { display:grid; grid-template-columns:repeat(auto-fit, minmax(130px,1fr)); gap:8px; }
+  .top3 .p { border:1px solid var(--line); border-radius:9px; padding:10px 11px; position:relative; }
+  .top3 .p.parceiro { border-color:var(--iez); background:rgba(243,108,0,0.05); }
+  .top3 .pos-n { font-size:10px; font-weight:600; color:var(--muted); letter-spacing:.06em; }
+  .top3 .nome { font-size:12px; font-weight:600; margin:2px 0 5px; line-height:1.25; }
+  .top3 .pct { font-size:19px; font-weight:600; font-variant-numeric:tabular-nums; letter-spacing:-.02em; }
+  .top3 .det { font-size:10.5px; color:var(--ink-3); }
+  .top3 .agg { color:var(--muted); font-style:italic; }
+
+  /* FWA */
+  .fwa-head { display:flex; align-items:baseline; gap:10px; margin-bottom:9px; }
+  .fwa-n { font-size:30px; font-weight:600; letter-spacing:-.03em; font-variant-numeric:tabular-nums; }
+  .fwa-bar { height:9px; border-radius:5px; background:var(--line); overflow:hidden; margin:9px 0 7px; }
+  .fwa-bar > i { display:block; height:100%; border-radius:5px; background:var(--iez); }
+  .fwa-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(110px,1fr)); gap:8px; margin-top:10px; }
+
+  /* Estabelecimentos */
+  .pdv.clicavel { cursor:pointer; background:none; text-align:left; width:100%; font:inherit; color:inherit; }
+  .pdv.clicavel:hover { border-color:var(--iez); background:rgba(243,108,0,0.05); }
+  .pdv.clicavel[aria-expanded="true"] { border-color:var(--iez); background:rgba(243,108,0,0.08); }
+  .pdv .chev { float:right; color:var(--muted); font-size:10px; }
+  .estab { margin-top:10px; border:1px solid var(--line); border-radius:9px; overflow:hidden; }
+  .estab-h { padding:8px 11px; background:#fafafb; border-bottom:1px solid var(--line); font-size:11px; font-weight:600; }
+  .estab table { font-size:11.5px; }
+  .estab td { padding:7px 11px; border-bottom:1px solid var(--line-soft); vertical-align:top; }
+  .estab .cnpj { font-variant-numeric:tabular-nums; color:var(--ink-3); font-size:11px; }
+  .estab a { color:var(--iez); text-decoration:none; font-size:11px; white-space:nowrap; }
+  .estab a:hover { text-decoration:underline; }
+
+  /* Fonte do dado — rodapé de cada quadro */
+  .fonte {
+    text-align:right; font-size:10px; color:var(--muted); margin-top:7px;
+    font-style:italic; line-height:1.35;
+  }
+  .pend { color:var(--cond); font-style:normal; font-weight:600; }
+  .badge-real {
+    font-size:10px; font-weight:600; padding:2px 7px; border-radius:20px;
+    background:#e7f4ed; color:var(--go); letter-spacing:.03em;
+  }
+  .sinergia {
+    display:inline-block; font-size:10px; font-weight:600; padding:1px 6px;
+    border-radius:10px; background:rgba(243,108,0,0.12); color:#8a3d00; margin-left:5px;
+  }
+  .risco { font-size:10px; font-weight:600; padding:1px 6px; border-radius:10px; }
+  .r-alto { background:var(--nogo-bg); color:var(--nogo); }
+  .r-medio { background:var(--cond-bg); color:var(--cond); }
+  .r-ok { background:var(--go-bg); color:var(--go); }
+  .links { display:flex; flex-direction:column; gap:3px; align-items:flex-end; }
+
+  /* --- Estados --- */
+  .state { padding:48px 24px; text-align:center; color:var(--ink-3); }
+  .state h3 { font-size:14px; color:var(--ink); margin-bottom:6px; font-weight:600; }
+  .skel { height:38px; border-bottom:1px solid var(--line-soft);
+          background:linear-gradient(90deg,#f2f2f4 25%,#e9e9ee 37%,#f2f2f4 63%);
+          background-size:400% 100%; animation:sh 1.3s ease-in-out infinite; }
+  @keyframes sh { 0%{background-position:100% 50%} 100%{background-position:0 50%} }
+
+  /* --- Drawer --- */
+  .overlay {
+    position:fixed; inset:0; background:rgba(0,0,0,0.32); opacity:0; pointer-events:none;
+    transition:opacity .18s ease; z-index:90;
+  }
+  .overlay.open { opacity:1; pointer-events:auto; }
+  .drawer {
+    position:fixed; top:0; right:0; height:100%; width:min(560px, 100%);
+    background:var(--card); box-shadow:var(--shadow); z-index:91;
+    transform:translateX(100%); transition:transform .22s ease;
+    display:flex; flex-direction:column;
+  }
+  .drawer.open { transform:none; }
+  .drawer-head {
+    padding:18px 22px; border-bottom:1px solid var(--line);
+    display:flex; justify-content:space-between; align-items:flex-start; gap:14px;
+  }
+  .drawer-body { padding:20px 22px; overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:20px; }
+  .drawer-foot { padding:11px 22px; border-top:1px solid var(--line); font-size:11px; color:var(--muted); }
+  .x { background:none; border:none; font-size:20px; line-height:1; color:var(--ink-3); cursor:pointer; padding:2px 6px; border-radius:6px; }
+  .x:hover { background:rgba(0,0,0,0.06); color:var(--ink); }
+
+  .section-title { font-size:10.5px; font-weight:600; text-transform:uppercase; letter-spacing:0.06em; color:var(--ink-3); margin-bottom:8px; }
+  .mini { width:100%; border-collapse:collapse; font-size:12px; }
+  .mini th { text-align:left; font-size:10px; text-transform:uppercase; letter-spacing:0.05em; color:var(--ink-3); padding:6px 8px; border-bottom:1px solid var(--line); }
+  .mini td { padding:7px 8px; border-bottom:1px solid var(--line-soft); }
+  .mini tr.is-iez { background:rgba(243,108,0,0.07); }
+  .mini tr.is-iez td { font-weight:600; }
+  .mini tr.is-partner td { font-weight:600; }
+
+  .sharebar { height:7px; border-radius:4px; background:var(--line); overflow:hidden; min-width:70px; }
+  .sharebar > i { display:block; height:100%; background:var(--ink-3); border-radius:4px; }
+  .sharebar.is-partner > i { background: var(--iez); }
+
+  .reco { padding:14px 16px; border-radius:10px; border:1px solid var(--line); }
+  .reco ul { list-style:none; margin-top:9px; display:flex; flex-direction:column; gap:5px; }
+  .reco li { font-size:12px; display:flex; gap:7px; }
+  .reco li b { font-weight:600; }
+  .pos { color:var(--go); } .neg { color:var(--nogo); }
+  .deal { margin-top:11px; padding-top:11px; border-top:1px dashed var(--line); font-size:12px; }
+
+  .placeholder-map {
+    border:1px dashed var(--line); border-radius:10px; padding:20px; text-align:center;
+    color:var(--muted); font-size:12px; background:#fafafb;
+  }
+
+  @media (max-width: 900px) {
+    .screen { padding:16px; gap:14px; }
+    .kpis { grid-template-columns: repeat(2, 1fr); }
+    .col-opt { display:none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation:none !important; transition:none !important; }
+  }
+</style>
+</head>
+<body>
+
+<main class="screen">
+  <header class="header-top">
+    <div>
+      <h1>Ferramenta de Análise de Mercado</h1>
+      <p class="sub"><strong>IAC — Índice de Atratividade Comercial</strong> · <strong>IAP — Índice de Aderência de Parceiro</strong> · MG, ES e RJ</p>
+    </div>
+    <img class="logo-iez" src="data:image/png;base64,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" alt="IEZ Telecom">
+  </header>
+
+  <div class="card" id="carga" style="padding:12px 16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+    <div style="flex:1;min-width:220px">
+      <strong style="font-size:12px">Carregar dados reais</strong>
+      <div class="sub">Arraste o <code>market_intel.json</code> aqui ou escolha o arquivo.
+        Gerado por <code>python3 -m iez_market.etl --uf MG ES RJ</code></div>
+    </div>
+    <input type="file" id="arquivo" accept=".json,application/json" style="display:none">
+    <button class="btn btn-primary" id="btnArquivo">Escolher arquivo…</button>
+  </div>
+
+  <div class="demo-banner" role="status">
+    <span aria-hidden="true">⚠</span>
+    <div>
+      <strong>Protótipo com dados de demonstração.</strong>
+      Os valores abaixo são fabricados para validar o layout e calibrar os pesos do score.
+      Não utilizar em material de comitê até a carga real da Anatel (Sprint 2).
+    </div>
+  </div>
+
+  <section class="kpis" id="kpis" aria-label="Resumo por faixa de decisão"></section>
+
+  <details class="weights card">
+    <summary>Calibração de pesos do IAC — Índice de Atratividade Comercial <span class="sub" style="font-weight:400">— ajuste e veja o ranking reordenar</span></summary>
+    <div class="weights-body">
+      <p class="sub">Mova os controles para encontrar a combinação que reflete a estratégia. O ranking recalcula em tempo real.</p>
+      <div class="slider-grid" id="sliders"></div>
+      <div class="weights-total" id="wtotal"></div>
+      <button class="btn" id="resetWeights" style="margin-top:12px">Restaurar padrão</button>
+    </div>
+  </details>
+
+  <div class="card" style="padding:12px 16px 14px">
+    <label class="sub" style="display:block;margin-bottom:8px;font-size:11px;text-transform:uppercase;letter-spacing:.04em">Filtrar por faixa de decisão</label>
+    <div id="pillsFaixa" class="pills-faixa" role="group" aria-label="Filtrar por faixa de decisão"></div>
+  </div>
+
+  <div class="card toolbar">
+    <div class="field">
+      <label for="q">Buscar município</label>
+      <input type="search" id="q" placeholder="Nome do município" autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="uf">UF</label>
+      <select id="uf"><option value="">Todas</option></select>
+    </div>
+    <div class="field">
+      <label for="parceiro">Parceiro ISP</label>
+      <select id="parceiro"><option value="">Todos</option></select>
+    </div>
+    <label class="check"><input type="checkbox" id="onlyGap"> Somente gap 5G = 100%</label>
+    <button class="btn" id="clear" style="margin-left:auto">Limpar filtros</button>
+  </div>
+
+  <div class="card" style="overflow:visible">
+    <div>
+      <table id="tbl">
+        <thead>
+          <tr>
+            <th scope="col">#</th>
+            <th scope="col" aria-sort="none" data-k="municipio">Município <span class="arrow">▾</span></th>
+            <th scope="col" class="col-opt">UF</th>
+            <th scope="col" class="num" aria-sort="none" data-k="pop">População <span class="arrow">▾</span></th>
+            <th scope="col" class="num col-opt" aria-sort="none" data-k="erbs_obrig">ERBs obrig. <span class="arrow">▾</span></th>
+            <th scope="col" aria-sort="descending" data-k="score" title="Índice de Atratividade Comercial">IAC <span class="arrow">▾</span></th>
+            <th scope="col">Faixa</th>
+            <th scope="col" class="num" aria-sort="none" data-k="gap_5g_pct">Gap 5G <span class="arrow">▾</span></th>
+            <th scope="col" class="num col-opt" aria-sort="none" data-k="concorrentes">Concorrentes <span class="arrow">▾</span></th>
+            <th scope="col" class="col-opt">Melhor ISP</th>
+            <th scope="col" class="num col-opt" aria-sort="none" data-k="iap">IAP <span class="arrow">▾</span></th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <div id="more" style="padding:12px; text-align:center; display:none">
+      <button class="btn" id="loadMore">Carregar mais</button>
+    </div>
+  </div>
+
+  <p class="sub" id="prov"></p>
+</main>
+
+<div class="overlay" id="overlay" tabindex="-1"></div>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="dTitle" hidden>
+  <div class="drawer-head">
+    <div>
+      <h2 id="dTitle" style="font-size:16px"></h2>
+      <p class="sub" id="dSub"></p>
+    </div>
+    <button class="x" id="dClose" aria-label="Fechar detalhe">×</button>
+  </div>
+  <div class="drawer-body" id="dBody"></div>
+  <div class="drawer-foot" id="dFoot"></div>
+</aside>
+
+<script>
+(function () {
+  'use strict';
+
+  // Faixas de decisão — alinhadas ao padrão de readiness já usado no dashboard.
+  var FAIXAS = [
+    { min: 75, nome: 'GO',              cls: 't-go' },
+    { min: 60, nome: 'CONDITIONAL GO',  cls: 't-cond' },
+    { min: 45, nome: 'WATCHLIST',       cls: 't-watch' },
+    { min: -1, nome: 'NO-GO',           cls: 't-nogo' }
+  ];
+
+  // Rótulo em português para exibição. O código interno (m._faixa) permanece
+  // em inglês — é o vocabulário padrão usado também pela skill iez-market e
+  // por qualquer relatório gerado a partir dela. Traduzir só a camada de
+  // apresentação evita que o painel e os relatórios de texto "falem línguas
+  // diferentes" sobre a mesma classificação.
+  var FAIXA_PT = {
+    'GO':                 'Priorizar',
+    'CONDITIONAL GO':     'Avançar com Ressalvas',
+    'WATCHLIST':          'Monitorar',
+    'NO-GO':              'Não Avançar',
+    'INSUFFICIENT DATA':  'Dados Insuficientes'
+  };
+  function faixaPt(codigo) { return FAIXA_PT[codigo] || codigo; }
+  var COBERTURA_MINIMA = 70; // abaixo disso não se atribui score — INSUFFICIENT DATA
+  var PAGE = 50;             // renderização incremental: a base aberta MG/ES/RJ chega a ~1.500 linhas
+
+  var BLOCOS = [
+    { k: 'demanda',  rot: 'Demanda' },
+    { k: 'folga',    rot: 'Folga competitiva' },
+    { k: 'espectro', rot: 'Vantagem espectral' },
+    { k: 'parceiro', rot: 'Força do parceiro' }
+  ];
+
+  // Obrigação de cobertura 5G do edital, aplicável a municípios com menos de 30.000 hab.
+  // Convenção adotada nos limites: o valor de fronteira pertence à faixa inferior
+  // (5.000 hab → 1 ERB). Confirmar contra a redação literal do edital antes do uso formal.
+  var FAIXAS_OBRIGACAO = [
+    { ate: 5000,   erbs: 1 },
+    { ate: 10000,  erbs: 2 },
+    { ate: 20000,  erbs: 3 },
+    { ate: 25720,  erbs: 4 },
+    { ate: 30000,  erbs: 5 }
+  ];
+  var LIMITE_GTM_PROPRIO = 30000; // abaixo disso, sempre avaliar canal próprio — com ou sem ISP parceiro
+
+  function erbsObrigacao(pop) {
+    if (pop == null) return null;
+    if (pop >= 30000) return 0; // fora da obrigação — entrada é decisão puramente comercial
+    var f = FAIXAS_OBRIGACAO.find(function (x) { return pop <= x.ate; });
+    return f ? f.erbs : 5;
+  }
+
+  // Buckets agregados não são um ISP — não podem ocupar posição no pódio de market share.
+  var AGREGADOS = /^(outros|demais|outras)\b/i;
+
+  function top5Isps(m) {
+    var ps = (m.banda_larga_fixa && m.banda_larga_fixa.prestadoras) || [];
+    return ps.slice()
+      .sort(function (a, b) { return (b.share_pct || 0) - (a.share_pct || 0); })
+      .slice(0, 5);
+  }
+
+  // Potencial de FWA: domicílios sem banda larga fixa, limitados à parcela urbana,
+  // que é a única efetivamente coberta pela ERB posicionada na área urbana.
+  function calcFwa(m) {
+    var d = m.demografia || {};
+    var dom = d.domicilios, urb = d.urbanizacao_pct;
+    var blf = m.banda_larga_fixa ? m.banda_larga_fixa.acessos_total : null;
+    if (dom == null || blf == null) return null;
+    var comFixa = Math.min(blf, dom);
+    var semFixa = Math.max(0, dom - comFixa);
+    var penetracao = comFixa / dom * 100;
+    var pctSem = semFixa / dom * 100;
+    var fatorUrb = urb == null ? 1 : urb / 100;
+    var enderecaveis = Math.round(semFixa * fatorUrb);
+    var ipf = Math.round(pctSem * fatorUrb);
+    return {
+      dom: dom, comFixa: comFixa, semFixa: semFixa, enderecaveis: enderecaveis,
+      penetracao: penetracao, ipf: ipf,
+      classe: ipf >= 50 ? 'Alto' : ipf >= 30 ? 'Médio' : 'Baixo'
+    };
+  }
+
+  function fonte(txt) { return '<div class="fonte">Fonte: ' + txt + '</div>'; }
+
+  // Sinergia de venda de chip por tipo de estabelecimento.
+  // Ordena por aderência ao produto, não por fluxo de pessoas — padaria tem o maior
+  // fluxo do município e a menor conversão, porque ninguém entra ali pensando em telefonia.
+  var SINERGIA = [
+    { re: /acess[óo]rio|celular|assist[êe]ncia/i, peso: 1.00, nota: 'público já em jornada de telefonia; vendedor sabe explicar plano' },
+    { re: /banca|conveni[êe]ncia/i,               peso: 0.80, nota: 'cultura de recarga e compra por impulso' },
+    { re: /lot[ée]rica|correspondente/i,          peso: 0.75, nota: 'fluxo alto e cultura de transação; já opera serviços de terceiros' },
+    { re: /farm[áa]cia|drogaria/i,                peso: 0.55, nota: 'fluxo recorrente, mas categoria distante do produto' },
+    { re: /mercearia|mercado|supermercado/i,      peso: 0.50, nota: 'maior fluxo, menor aderência ao produto' },
+    { re: /padaria|panifica/i,                    peso: 0.40, nota: 'fluxo diário alto, ticket baixo, sem cultura de serviço' }
+  ];
+
+  function sinergia(tipo) {
+    var s = SINERGIA.find(function (x) { return x.re.test(tipo); });
+    return s || { peso: 0.45, nota: 'sinergia não classificada' };
+  }
+
+  // Tempo de CNPJ entra como sinal de risco de descontinuidade do canal,
+  // não como critério de qualidade — PDV novo pode ser o melhor ponto do município.
+  function riscoIdade(anos) {
+    if (anos == null) return null;
+    if (anos < 2)  return { cls: 'r-alto',  txt: '< 2 anos' };
+    if (anos < 5)  return { cls: 'r-medio', txt: anos + ' anos' };
+    return { cls: 'r-ok', txt: anos + ' anos' };
+  }
+
+  var dados = null, pesosPadrao = null, pesos = null;
+  var ordem = { k: 'score', dir: -1 };
+  var visiveis = PAGE;
+  var faixaAtiva = ''; // '' = todas as faixas
+  var listaAtual = [];
+  var ultimoFoco = null;
+
+  var $ = function (id) { return document.getElementById(id); };
+  var esc = function (s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c];
+    });
+  };
+  var nfmt = function (n) { return n == null ? '—' : n.toLocaleString('pt-BR'); };
+
+  // ---------- Cálculo do score ----------
+  function calcular(m) {
+    if (m.cobertura_dados_pct == null || m.cobertura_dados_pct < COBERTURA_MINIMA) {
+      // Regra dura: sem cobertura mínima não se infere score. Nunca zero, nunca "provavelmente GO".
+      return { score: null, faixa: 'INSUFFICIENT DATA', cls: 't-nodata' };
+    }
+    var soma = 0, total = 0;
+    BLOCOS.forEach(function (b) {
+      var v = m.blocos ? m.blocos[b.k] : null;
+      if (v == null) return;
+      soma += v * pesos[b.k];
+      total += pesos[b.k];
+    });
+    if (!total) return { score: null, faixa: 'INSUFFICIENT DATA', cls: 't-nodata' };
+    var s = soma / total;
+    var f = FAIXAS.find(function (x) { return s >= x.min; });
+    return { score: Math.round(s * 10) / 10, faixa: f.nome, cls: f.cls };
+  }
+
+  function melhorIsp(m) {
+    var ps = (m.banda_larga_fixa && m.banda_larga_fixa.prestadoras) || [];
+    var comIap = ps.filter(function (p) { return p.iap != null; });
+    if (!comIap.length) return null;
+    return comIap.reduce(function (a, b) { return b.iap > a.iap ? b : a; });
+  }
+
+  function nConcorrentes(m) {
+    return (m.concorrencia && m.concorrencia.resumo_por_operadora || []).length;
+  }
+
+  function enriquecer() {
+    dados.municipios.forEach(function (m) {
+      var r = calcular(m);
+      m._score = r.score; m._faixa = r.faixa; m._cls = r.cls;
+      var isp = melhorIsp(m);
+      m._isp = isp ? isp.nome : null;
+      m._iap = isp ? isp.iap : null;
+      m._nconc = nConcorrentes(m);
+      m._pop = m.demografia ? m.demografia.pop_total : null;
+      m._erbsObrig = erbsObrigacao(m._pop);
+      // Canal próprio entra em pauta quando o município é pequeno E não há ISP elegível.
+      // Canal próprio agora é avaliado para todo município pequeno, com ou
+      // sem parceiro — mesmo tendo ISP, capilarizar em comércio local ajuda
+      // a distribuição do chip e reduz CAC.
+      m._gtmProprio = m._pop != null && m._pop < LIMITE_GTM_PROPRIO;
+      m._real = !!m.dados_reais;
+    });
+  }
+
+  // ---------- Filtros e ordenação ----------
+  function filtrar() {
+    var q = $('q').value.trim().toLowerCase();
+    var uf = $('uf').value, fx = faixaAtiva, pa = $('parceiro').value;
+    var gapOnly = $('onlyGap').checked;
+
+    return dados.municipios.filter(function (m) {
+      if (q && m.municipio.toLowerCase().indexOf(q) === -1) return false;
+      if (uf && m.uf !== uf) return false;
+      if (fx && m._faixa !== fx) return false;
+      if (pa && m._isp !== pa) return false;
+      if (gapOnly && m.gap_5g_pct !== 100) return false;
+      return true;
+    });
+  }
+
+  function ordenar(lista) {
+    var k = ordem.k, dir = ordem.dir;
+    return lista.slice().sort(function (a, b) {
+      var va, vb;
+      if (k === 'score')            { va = a._score; vb = b._score; }
+      else if (k === 'iap')         { va = a._iap;   vb = b._iap; }
+      else if (k === 'concorrentes'){ va = a._nconc; vb = b._nconc; }
+      else if (k === 'pop')         { va = a._pop;   vb = b._pop; }
+      else if (k === 'erbs_obrig')  { va = a._erbsObrig; vb = b._erbsObrig; }
+      else if (k === 'municipio')   { return a.municipio.localeCompare(b.municipio, 'pt-BR') * dir; }
+      else                          { va = a[k]; vb = b[k]; }
+      // Nulos sempre ao fim, independentemente da direção — não competem no ranking.
+      if (va == null && vb == null) return 0;
+      if (va == null) return 1;
+      if (vb == null) return -1;
+      return (va - vb) * dir;
+    });
+  }
+
+  // ---------- Render ----------
+  function renderKpis() {
+    var cont = { 'GO':0, 'CONDITIONAL GO':0, 'WATCHLIST':0, 'NO-GO':0, 'INSUFFICIENT DATA':0 };
+    dados.municipios.forEach(function (m) { cont[m._faixa]++; });
+    var mapa = [
+      ['GO', 'var(--go)'], ['CONDITIONAL GO', 'var(--cond)'], ['WATCHLIST', 'var(--watch)'],
+      ['NO-GO', 'var(--nogo)'], ['INSUFFICIENT DATA', 'var(--nodata)']
+    ];
+    $('kpis').innerHTML = mapa.map(function (p) {
+      return '<div class="card kpi"><div class="n">' + cont[p[0]] + '</div>' +
+             '<div class="l"><span class="dot" style="background:' + p[1] + '"></span>' + faixaPt(p[0]) + '</div></div>';
+    }).join('');
+    contagemFaixas = cont;
+    renderPills();
+  }
+
+  // Mapa de código interno -> classe CSS do pill, reaproveitando as cores
+  // já definidas para as tags da tabela (t-go, t-cond, ...).
+  var PILL_CLS = {
+    'GO': 'p-go', 'CONDITIONAL GO': 'p-cond', 'WATCHLIST': 'p-watch',
+    'NO-GO': 'p-nogo', 'INSUFFICIENT DATA': 'p-nodata'
+  };
+  var contagemFaixas = {};
+
+  function renderPills() {
+    var ordemFaixas = ['GO', 'CONDITIONAL GO', 'WATCHLIST', 'NO-GO', 'INSUFFICIENT DATA'];
+    var html = '<button type="button" class="pill" aria-pressed="' + (faixaAtiva === '' ? 'true' : 'false') + '" data-fx="">' +
+      'Todas <span class="n">' + dados.municipios.length + '</span></button>';
+    html += ordemFaixas.map(function (fx) {
+      var ativo = faixaAtiva === fx;
+      return '<button type="button" class="pill ' + PILL_CLS[fx] + '" aria-pressed="' + ativo + '" data-fx="' + fx + '">' +
+        '<span class="dot" aria-hidden="true"></span>' + faixaPt(fx) +
+        ' <span class="n">' + (contagemFaixas[fx] || 0) + '</span></button>';
+    }).join('');
+    $('pillsFaixa').innerHTML = html;
+    $('pillsFaixa').querySelectorAll('.pill').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        faixaAtiva = btn.dataset.fx;
+        visiveis = PAGE;
+        renderPills();
+        render();
+      });
+    });
+  }
+
+  function linha(m, i) {
+    var score = m._score == null
+      ? '<span class="sub">sem score</span>'
+      : '<div class="scorewrap"><div class="bar"><i style="width:' + m._score + '%"></i></div>' +
+        '<span class="scoreval">' + m._score.toFixed(1) + '</span></div>';
+    var gap = m.gap_5g_pct == null ? '—'
+      : '<span class="gap ' + (m.gap_5g_pct === 100 ? 'gap-full' : '') + '">' + m.gap_5g_pct + '%</span>';
+    return '<tr tabindex="0" data-i="' + esc(m.ibge) + '">' +
+      '<td class="rank">' + (i + 1) + '</td>' +
+      '<td class="mun">' + esc(m.municipio) + '<small>' + esc(m.corredor || '') + '</small></td>' +
+      '<td class="col-opt">' + esc(m.uf) + '</td>' +
+      '<td class="num">' + nfmt(m._pop) + '</td>' +
+      '<td class="num col-opt">' + (m._erbsObrig == null ? '—'
+          : m._erbsObrig === 0 ? '<span class="sub">sem obrig.</span>'
+          : '<span class="obrig">' + m._erbsObrig + '</span>') + '</td>' +
+      '<td>' + score + '</td>' +
+      '<td><span class="tag ' + m._cls + '" title="' + m._faixa + '">' + faixaPt(m._faixa) + '</span></td>' +
+      '<td class="num">' + gap + '</td>' +
+      '<td class="num col-opt">' + m._nconc + '</td>' +
+      '<td class="col-opt">' + (m._isp
+          ? esc(m._isp) + (m._gtmProprio ? ' <span class="tag t-own" style="margin-left:4px">+ canal próprio</span>' : '')
+          : m._gtmProprio ? '<span class="tag t-own">canal próprio</span>'
+          : '<span class="sub">—</span>') + '</td>' +
+      '<td class="num col-opt">' + (m._iap == null ? '—' : m._iap) + '</td>' +
+    '</tr>';
+  }
+
+  function render() {
+    var lista = ordenar(filtrar());
+    listaAtual = lista;
+    var tb = $('tbody');
+
+    if (!lista.length) {
+      tb.innerHTML = '<tr><td colspan="11"><div class="state">' +
+        '<h3>Nenhum município atende aos filtros</h3>' +
+        '<p>Ajuste a busca ou limpe os filtros para ver o ranking completo.</p></div></td></tr>';
+      $('more').style.display = 'none';
+      return;
+    }
+    tb.innerHTML = lista.slice(0, visiveis).map(linha).join('');
+    $('more').style.display = lista.length > visiveis ? 'block' : 'none';
+    $('loadMore').textContent = 'Carregar mais (' + (lista.length - visiveis) + ' restantes)';
+  }
+
+  function fatoresFonte() {
+    return fonte('Blocos calculados pelo ETL a partir de IBGE (Censo 2022), Anatel (Mosaico e Painel de Acessos) ' +
+                 'e planilha interna. Pesos calibráveis no painel de calibração.');
+  }
+
+  // Paleta fixa por operadora — precisa ser estável entre municípios para
+  // não confundir quem olha vários municípios seguidos (Claro sempre na
+  // mesma cor, em qualquer tela).
+  var COR_OPERADORA = {
+    'Claro': '#e30613', 'Vivo': '#660099', 'TIM': '#0033a0',
+    'Oi': '#ffd200', 'Algar': '#00a19a', 'IEZ Telecom': '#F36C00'
+  };
+  function corOperadora(nome) { return COR_OPERADORA[nome] || '#5a5a66'; }
+
+  function tabelaPrestadoras(ps) {
+    return '<table class="mini" style="margin-top:8px"><thead><tr><th>Prestadora</th><th class="num">Acessos</th>' +
+      '<th>Share</th><th class="num">12m</th><th class="num">IAP</th></tr></thead><tbody>' +
+      ps.map(function (p) {
+        var parceiro = p.iap != null;
+        return '<tr class="' + (parceiro ? 'is-partner' : '') + '">' +
+          '<td>' + esc(p.nome) + ' <span class="sub">' + esc(p.tecnologia || '') + '</span></td>' +
+          '<td class="num">' + nfmt(p.acessos) + '</td>' +
+          '<td><div style="display:flex;align-items:center;gap:7px">' +
+            '<div class="sharebar ' + (parceiro ? 'is-partner' : '') + '"><i style="width:' + p.share_pct + '%"></i></div>' +
+            '<span class="num" style="width:42px">' + p.share_pct.toFixed(1) + '%</span></div></td>' +
+          '<td class="num" style="color:' + (p.cresc_12m_pct >= 0 ? 'var(--go)' : 'var(--nogo)') + '">' +
+            (p.cresc_12m_pct >= 0 ? '+' : '') + p.cresc_12m_pct + '%</td>' +
+          '<td class="num">' + (p.iap == null ? '—' : p.iap) + '</td></tr>';
+      }).join('') + '</tbody></table>';
+  }
+
+  // ---------- Drawer ----------
+  function abrir(ibge) {
+    var m = dados.municipios.find(function (x) { return x.ibge === ibge; });
+    if (!m) return;
+    ultimoFoco = document.activeElement;
+
+    $('dTitle').textContent = m.municipio + ' — ' + m.uf;
+    $('dSub').innerHTML = esc(m.corredor || '') + ' · cobertura de dados ' + (m.cobertura_dados_pct ?? '—') + '%' +
+      (m.dados_reais ? ' <span class="badge-real">IBGE real</span>' : '');
+
+    var partes = [];
+
+    // 0. Ficha do município — o que o IBGE já entrega hoje, sem depender de ETL
+    var dg = m.demografia || {};
+    if (dg.pop_total != null) {
+      var campo = function (rot, val, un) {
+        return '<tr><td>' + rot + '</td><td>' +
+          (val == null ? '<span class="pend">aguardando carga</span>'
+                       : (typeof val === 'number' ? nfmt(val) : esc(val)) + (un || '')) +
+          '</td></tr>';
+      };
+      partes.push(
+        '<section><div class="section-title">Ficha do município · IBGE ' + esc(m.ibge) + '</div>' +
+        '<table class="mini"><tbody>' +
+          campo('População (Censo 2022)', dg.pop_total, ' hab.') +
+          campo('Domicílios', dg.domicilios) +
+          campo('Grau de urbanização', dg.urbanizacao_pct, '%') +
+          (dg.area_km2 != null ? campo('Área territorial', dg.area_km2, ' km²') : '') +
+          (dg.densidade_hab_km2 != null ? campo('Densidade demográfica', dg.densidade_hab_km2, ' hab/km²') : '') +
+          (dg.idhm != null ? '<tr><td>IDHM</td><td>' + dg.idhm + '</td></tr>' : '') +
+          (dg.pib_per_capita != null ? campo('PIB per capita', 'R$ ' + Number(dg.pib_per_capita).toLocaleString('pt-BR', {maximumFractionDigits:2})) : '') +
+          '<tr><td>ERBs de obrigação</td><td>' +
+            (m._erbsObrig == null ? '—' : m._erbsObrig === 0 ? 'sem obrigação' : m._erbsObrig + ' ERB(s)') +
+          '</td></tr>' +
+        '</tbody></table>' +
+        fonte('IBGE — Censo 2022 e Cidades@. Obrigação: regra de ERBs do edital 5G.') +
+        '</section>'
+      );
+    }
+
+    // 1. Decisão e fatores
+    var fatores = BLOCOS.map(function (b) { return { rot: b.rot, v: m.blocos ? m.blocos[b.k] : null }; })
+                        .filter(function (f) { return f.v != null; })
+                        .sort(function (a, b) { return b.v - a.v; });
+    var altos = fatores.slice(0, 2), baixos = fatores.slice(-2).reverse();
+    var isp = melhorIsp(m);
+    var ficha = isp && dados.isps ? dados.isps[isp.nome] : null;
+
+    partes.push(
+      '<div class="reco" style="border-color:var(--line)">' +
+        '<div style="display:flex;align-items:center;gap:10px">' +
+          '<span class="tag ' + m._cls + '" title="' + m._faixa + '">' + faixaPt(m._faixa) + '</span>' +
+          (m._score != null ? '<strong style="font-size:18px">' + m._score.toFixed(1) + '</strong><span class="sub">IAC</span>' : '') +
+          (m._erbsObrig ? '<span class="obrig" title="Obrigação de cobertura 5G do edital">' + m._erbsObrig + ' ERBs de obrigação</span>' : '') +
+        '</div>' +
+        (fatores.length ? '<ul>' +
+          altos.map(function (f) { return '<li><span class="pos" aria-hidden="true">▲</span><span>Bloco mais alto: <b>' + f.rot + '</b> (' + f.v + ')</span></li>'; }).join('') +
+          baixos.map(function (f) { return '<li><span class="neg" aria-hidden="true">▼</span><span>Bloco mais baixo: <b>' + f.rot + '</b> (' + f.v + ')</span></li>'; }).join('') +
+        '</ul>' : '<p class="sub" style="margin-top:8px">Sem blocos avaliados.</p>') +
+        (fatoresFonte()) +
+        (ficha && ficha.modelo_comercial
+          ? '<div class="deal"><b>Modelo sugerido com ' + esc(isp.nome) + ':</b><br>' +
+            'Setup: ' + esc(ficha.modelo_comercial.setup) + '<br>' +
+            'Receita: ' + esc(ficha.modelo_comercial.receita) + '<br>' +
+            '<span class="sub">' + esc(ficha.modelo_comercial.racional) + '</span></div>'
+          : '') +
+      '</div>'
+    );
+
+    // 2. Espectro e concorrência
+    var ops = (m.concorrencia && m.concorrencia.resumo_por_operadora) || [];
+    var iez = m.concorrencia && m.concorrencia.iez;
+    var linhasOps = '';
+    if (iez) {
+      linhasOps += '<tr class="is-iez"><td>IEZ Telecom</td><td>' + iez.faixas.join(', ') + '</td>' +
+                   '<td>' + iez.tecnologia_max + '</td><td class="num">—</td><td class="num">' + iez.bw_total_mhz + '</td></tr>';
+    }
+    linhasOps += ops.map(function (o) {
+      return '<tr><td>' + esc(o.operadora) + '</td><td>' + o.faixas.join(', ') + '</td>' +
+             '<td>' + esc(o.tecnologia_max) + '</td><td class="num">' + o.n_erbs + '</td>' +
+             '<td class="num">' + o.bw_estimada_mhz + '</td></tr>';
+    }).join('');
+
+    partes.push(
+      '<section>' +
+        '<div class="section-title">Espectro e ERBs por operadora</div>' +
+        (ops.length || iez
+          ? '<table class="mini"><thead><tr><th>Operadora</th><th>Faixas (MHz)</th><th>Tecnologia</th>' +
+            '<th class="num">ERBs</th><th class="num">BW (MHz)</th></tr></thead><tbody>' + linhasOps + '</tbody></table>' +
+            '<p class="sub" style="margin-top:7px">ERBs licenciadas (Anatel/Mosaico). Licença não confirma estação em operação.</p>' +
+            fonte('Anatel — Mosaico / Painel Estações do SMP (licenciamento).<br>Espectro IEZ: Ato 6956/2026 e edital do leilão 5G.')
+          : '<div class="state" style="padding:24px"><h3>Sem dados de licenciamento</h3><p>Nenhuma estação retornada para este município.</p></div>') +
+      '</section>'
+    );
+
+    // 3. Banda larga fixa — cards dos 3 maiores + tabela dos 5 primeiros
+    var top5 = top5Isps(m);
+    var top3 = top5.slice(0, 3);
+    var podio = top3.length
+      ? '<div class="top3">' + top3.map(function (p, i) {
+          var agg = AGREGADOS.test(p.nome);
+          return '<div class="p ' + (p.iap != null ? 'parceiro' : '') + '">' +
+            '<div class="pos-n">' + (i + 1) + 'º</div>' +
+            '<div class="nome' + (agg ? ' agg' : '') + '">' + esc(p.nome) + '</div>' +
+            '<div class="pct">' + p.share_pct.toFixed(1) + '%</div>' +
+            '<div class="det">' + nfmt(p.acessos) + ' acessos · ' + esc(p.tecnologia || '—') + '</div>' +
+            (agg ? '<div class="det agg">agregado, não é um ISP</div>' : '') +
+            (p.iap != null ? '<div class="det" style="color:var(--iez);font-weight:600">parceiro · IAP ' + p.iap + '</div>' : '') +
+          '</div>';
+        }).join('') + '</div>'
+      : '';
+
+    partes.push(
+      '<section>' +
+        '<div class="section-title">Top 5 ISPs por market share — ' + nfmt(m.banda_larga_fixa && m.banda_larga_fixa.acessos_total) + ' acessos no município</div>' +
+        (top5.length
+          ? podio + tabelaPrestadoras(top5) +
+            fonte('Anatel — Painel de Acessos, Banda Larga Fixa por prestadora e município.<br>' +
+                  'Coluna 12M: variação da base declarada nos últimos 12 meses.')
+          : '<div class="state" style="padding:24px"><h3>Sem dados de banda larga</h3><p>Município ainda não carregado na base de acessos.</p></div>') +
+      '</section>'
+    );
+
+    // 3a. Potencial de FWA — vale para qualquer porte de município
+    var fw = calcFwa(m);
+    if (!fw) {
+      partes.push(
+        '<section><div class="section-title">Potencial de FWA — domicílios sem banda larga fixa</div>' +
+          '<div class="state" style="padding:22px"><h3>Aguardando carga</h3>' +
+          '<p>O IPF exige domicílios (IBGE) e acessos de banda larga fixa (Anatel). ' +
+          'Faltando: ' +
+          [(m.demografia && m.demografia.domicilios) == null ? 'domicílios' : null,
+           (m.banda_larga_fixa && m.banda_larga_fixa.acessos_total) == null ? 'acessos de banda larga' : null]
+            .filter(Boolean).join(' e ') + '.</p></div>' +
+          fonte('IBGE — Censo 2022 · Anatel — Painel de Acessos.') +
+        '</section>'
+      );
+    } else {
+      partes.push(
+        '<section>' +
+          '<div class="section-title">Potencial de FWA — domicílios sem banda larga fixa</div>' +
+          '<div class="fwa-head">' +
+            '<span class="fwa-n">' + fw.ipf + '</span>' +
+            '<span class="sub">IPF — Índice de Potencial FWA · <b>' + fw.classe + '</b></span>' +
+          '</div>' +
+          '<div class="fwa-bar"><i style="width:' + fw.ipf + '%"></i></div>' +
+          '<div class="fwa-grid">' +
+            '<div class="pdv"><b>' + nfmt(fw.dom) + '</b><span>domicílios</span></div>' +
+            '<div class="pdv"><b>' + nfmt(fw.comFixa) + '</b><span>com banda larga fixa</span></div>' +
+            '<div class="pdv"><b>' + nfmt(fw.semFixa) + '</b><span>sem banda larga fixa</span></div>' +
+            '<div class="pdv"><b>' + nfmt(fw.enderecaveis) + '</b><span>endereçáveis (urbanos)</span></div>' +
+          '</div>' +
+          '<p class="sub" style="margin-top:9px">Penetração de fixa: ' + fw.penetracao.toFixed(1) + '%. ' +
+            'O IPF é a fração de domicílios sem fixa, limitada à parcela urbana — a única coberta pela ERB na área urbana.</p>' +
+          '<p class="sub" style="margin-top:5px"><b>Ressalva:</b> acessos de banda larga não equivalem a domicílios. ' +
+            'A base da Anatel inclui acessos corporativos e mais de um acesso por endereço, então a penetração real ' +
+            'é menor e o potencial, maior. Tratar como piso, não como medida.</p>' +
+          fonte('Domicílios e urbanização: IBGE, Censo 2022.<br>Acessos de banda larga fixa: Anatel — Painel de Acessos.') +
+        '</section>'
+      );
+    }
+
+    // 3b. Canal próprio — avaliado em todo município pequeno, com ou sem ISP
+    if (m._gtmProprio) {
+      var v = m.varejo || {};
+      var pdvs = (v.pdv_por_tipo || []).map(function (p, i) {
+        var s = sinergia(p.tipo);
+        return Object.assign({}, p, { _i: i, _peso: s.peso, _nota: s.nota, _pot: (p.n || 0) * s.peso });
+      }).sort(function (a, b) { return b._peso - a._peso || b._pot - a._pot; });
+      var totalPdv = pdvs.reduce(function (s, p) { return s + (p.n || 0); }, 0);
+      var potencial = pdvs.reduce(function (s, p) { return s + p._pot; }, 0);
+      var pdvPorMil = m._pop ? (totalPdv / m._pop * 1000) : null;
+
+      var contexto = m._isp
+        ? 'Município abaixo de ' + nfmt(LIMITE_GTM_PROPRIO) + ' hab. com <b>' + esc(m._isp) +
+          '</b> como parceiro. Canal próprio aqui não substitui a parceria — complementa: capilarizar a marca em ' +
+          'comércio local costuma reduzir CAC mesmo onde já existe base instalada.'
+        : 'Município abaixo de ' + nfmt(LIMITE_GTM_PROPRIO) + ' hab. sem ISP elegível. ' +
+          'A obrigação de ' + (m._erbsObrig || '—') + ' ERB(s) será cumprida de qualquer forma — a questão é como vender o chip sem CAC alto.';
+
+      partes.push(
+        '<section>' +
+          '<div class="section-title">Canal próprio — capilaridade de varejo</div>' +
+          '<p class="sub">' + contexto + '</p>' +
+          (pdvs.length
+            ? '<p class="sub" style="margin:8px 0 6px">Ordenado por <b>sinergia de venda de chip</b>, não por volume de estabelecimentos.</p>' +
+              '<div class="pdv-grid">' + pdvs.map(function (p) {
+                var temLista = p.estabelecimentos && p.estabelecimentos.length;
+                var corpo = '<b>' + p.n + '<span class="sinergia">×' + p._peso.toFixed(2) + '</span></b>' +
+                            '<span>' + esc(p.tipo) + '</span>';
+                if (!temLista) return '<div class="pdv" title="' + esc(p._nota) + '">' + corpo + '</div>';
+                return '<button type="button" class="pdv clicavel" data-pdv="' + p._i + '" title="' + esc(p._nota) + '" ' +
+                  'aria-expanded="false" aria-controls="estab-' + p._i + '">' +
+                  '<span class="chev" aria-hidden="true">▾</span>' + corpo + '</button>';
+              }).join('') + '</div>' +
+              '<div id="estabWrap"></div>' +
+              '<p class="sub" style="margin-top:8px">' + totalPdv + ' estabelecimentos · ' +
+                (pdvPorMil != null ? pdvPorMil.toFixed(1) + ' por mil hab.' : '—') +
+                ' · potencial ponderado ' + potencial.toFixed(1) + '</p>' +
+              '<p class="sub">Clique numa categoria para ver os estabelecimentos e validar antes da visita.</p>' +
+              fonte('Estabelecimentos e CNAE: Receita Federal — Cadastro Nacional da Pessoa Jurídica (dados abertos).<br>' +
+                    'Pesos de sinergia: critério interno IEZ, ajustável.')
+            : '<div class="state" style="padding:20px"><h3>Sem levantamento de varejo</h3>' +
+              '<p>Rodar o filtro de CNAE da base de CNPJs para este município.</p></div>') +
+          (v.perfil
+            ? '<table class="mini" style="margin-top:12px"><tbody>' +
+              '<tr><td>Idade mediana</td><td>' + (v.perfil.idade_mediana ?? '—') + ' anos</td></tr>' +
+              '<tr><td>Renda média</td><td>' + (v.perfil.renda_media != null ? 'R$ ' + nfmt(v.perfil.renda_media) : '—') + '</td></tr>' +
+              '<tr><td>Grau de urbanização</td><td>' + (v.perfil.urbanizacao_pct ?? '—') + '%</td></tr>' +
+              '<tr><td>Domicílios com internet fixa</td><td>' + (v.perfil.domicilios_com_internet_pct ?? '—') + '%</td></tr>' +
+              '</tbody></table>'
+            : '') +
+          (v.modelos_sugeridos && v.modelos_sugeridos.length
+            ? '<div style="margin-top:14px">' + v.modelos_sugeridos.map(function (mo) {
+                return '<div class="modelo"><b>' + esc(mo.nome) + '</b><span>' + esc(mo.desc) + '</span></div>';
+              }).join('') + '</div>'
+            : '') +
+        '</section>'
+      );
+    }
+
+    $('dBody').innerHTML = partes.join('');
+    ligarPdv(m);
+
+    var f = dados.fontes || {};
+    $('dFoot').textContent =
+      'Estações: ' + (f.estacoes_smp ? f.estacoes_smp.origem + ' ' + f.estacoes_smp.referencia : '—') +
+      ' · Acessos: ' + (f.acessos_blf ? f.acessos_blf.origem + ' ' + f.acessos_blf.referencia : '—') +
+      ' · Demografia: ' + (f.demografia ? f.demografia.origem : '—');
+
+    var d = $('drawer');
+    d.hidden = false;
+    requestAnimationFrame(function () { d.classList.add('open'); $('overlay').classList.add('open'); });
+    $('dClose').focus();
+  }
+
+  function fmtCnpj(c) {
+    var s = String(c || '').replace(/\D/g, '');
+    return s.length === 14
+      ? s.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5')
+      : (c || '—');
+  }
+
+  // Expansão de categoria de PDV: um painel por vez, para não transformar
+  // a seção numa parede de CNPJs.
+  function ligarPdv(m) {
+    var wrap = $('estabWrap');
+    if (!wrap) return;
+    var pdvs = (m.varejo && m.varejo.pdv_por_tipo) || []; // data-pdv guarda o índice ORIGINAL do array
+
+    $('dBody').querySelectorAll('.pdv.clicavel').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var idx = Number(btn.dataset.pdv);
+        var jaAberto = btn.getAttribute('aria-expanded') === 'true';
+
+        $('dBody').querySelectorAll('.pdv.clicavel').forEach(function (o) {
+          o.setAttribute('aria-expanded', 'false');
+          o.querySelector('.chev').textContent = '▾';
+        });
+        wrap.innerHTML = '';
+        if (jaAberto) return;
+
+        btn.setAttribute('aria-expanded', 'true');
+        btn.querySelector('.chev').textContent = '▴';
+
+        var p = pdvs[idx], lista = p.estabelecimentos || [];
+        var sin = sinergia(p.tipo);
+        wrap.innerHTML =
+          '<div class="estab" id="estab-' + idx + '">' +
+            '<div class="estab-h">' + esc(p.tipo) + ' — ' + lista.length +
+              ' de ' + p.n + ' estabelecimentos' +
+              (lista.length < p.n ? ' <span class="sub" style="font-weight:400">(amostra)</span>' : '') +
+              '<div class="sub" style="font-weight:400;margin-top:3px">Sinergia ×' + sin.peso.toFixed(2) + ' — ' + esc(sin.nota) + '</div>' +
+            '</div>' +
+            '<table class="mini"><tbody>' +
+            lista.map(function (e) {
+              var nome = e.nome_fantasia || e.razao_social || '';
+              // Query de endereço, separada da de nome: Maps precisa do
+              // logradouro para geocodificar certo — nome do comércio sozinho
+              // costuma levar para o município genérico, não para o local.
+              var cidadeUf = (m.municipio || '') + ' ' + (m.uf || '');
+              var qEndereco = encodeURIComponent(
+                (e.endereco ? e.endereco + ', ' : '') + cidadeUf);
+              var qGoogle = encodeURIComponent(nome + ' ' + (e.endereco || '') + ' ' + cidadeUf);
+              var risco = riscoIdade(e.anos_cnpj);
+              var telHref = e.telefone ? 'tel:+55' + e.telefone.replace(/\D/g, '') : null;
+              return '<tr><td>' +
+                  '<b>' + esc(nome) + '</b>' +
+                  (e.nome_fantasia && e.razao_social && e.nome_fantasia !== e.razao_social
+                    ? '<br><span class="sub">' + esc(e.razao_social) + '</span>' : '') +
+                  (e.endereco ? '<br><span class="sub">' + esc(e.endereco) + '</span>' : '') +
+                  (e.telefone ? '<br><span class="sub">☎ <a href="' + telHref + '">' + esc(e.telefone) + '</a></span>' : '') +
+                  '<br><span class="cnpj">' + fmtCnpj(e.cnpj) + '</span>' +
+                  (e.situacao ? ' <span class="sub">· ' + esc(e.situacao) + '</span>' : '') +
+                  (risco ? ' <span class="risco ' + risco.cls + '">CNPJ ' + risco.txt + '</span>' : '') +
+                '</td><td style="text-align:right;white-space:nowrap"><div class="links">' +
+                  '<a href="https://www.google.com/maps/search/' + qEndereco + '" target="_blank" rel="noopener noreferrer">Maps ↗</a>' +
+                  '<a href="https://www.google.com/search?q=' + qGoogle + '" target="_blank" rel="noopener noreferrer">Google ↗</a>' +
+                '</div></td></tr>';
+            }).join('') +
+            '</tbody></table>' +
+            '<div style="padding:9px 11px;border-top:1px solid var(--line)">' +
+              fonte('Cadastro, endereço, telefone e tempo de CNPJ: Receita Federal (dados abertos). Links de busca: externos, não verificados.') +
+            '</div>' +
+          '</div>';
+        wrap.querySelector('.estab').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      });
+    });
+  }
+
+  function fechar() {
+    $('drawer').classList.remove('open');
+    $('overlay').classList.remove('open');
+    setTimeout(function () { $('drawer').hidden = true; }, 220);
+    if (ultimoFoco) ultimoFoco.focus();
+  }
+
+  // ---------- Controles ----------
+  function montarSliders() {
+    $('sliders').innerHTML = BLOCOS.map(function (b) {
+      return '<div class="slider-row">' +
+        '<label for="w-' + b.k + '"><span>' + b.rot + '</span><span id="wv-' + b.k + '">' + Math.round(pesos[b.k] * 100) + '%</span></label>' +
+        '<input type="range" id="w-' + b.k + '" min="0" max="60" step="1" value="' + Math.round(pesos[b.k] * 100) + '">' +
+      '</div>';
+    }).join('');
+    BLOCOS.forEach(function (b) {
+      $('w-' + b.k).addEventListener('input', function (e) {
+        pesos[b.k] = Number(e.target.value) / 100;
+        $('wv-' + b.k).textContent = e.target.value + '%';
+        atualizarTotal();
+        enriquecer(); renderKpis(); render();
+      });
+    });
+    atualizarTotal();
+  }
+
+  function atualizarTotal() {
+    var t = BLOCOS.reduce(function (s, b) { return s + pesos[b.k]; }, 0);
+    var el = $('wtotal');
+    var pct = Math.round(t * 100);
+    el.textContent = 'Soma dos pesos: ' + pct + '%' +
+      (pct === 100 ? ' — o score é normalizado, então somas diferentes de 100% não invalidam a comparação.'
+                   : ' — normalizado automaticamente para comparação.');
+    el.classList.toggle('bad', pct === 0);
+  }
+
+  function preencherSelects() {
+    var ufs = Array.from(new Set(dados.municipios.map(function (m) { return m.uf; }))).sort();
+    $('uf').innerHTML = '<option value="">Todas</option>' +
+      ufs.map(function (u) { return '<option>' + esc(u) + '</option>'; }).join('');
+    var isps = Array.from(new Set(dados.municipios.map(function (m) { return m._isp; }).filter(Boolean))).sort();
+    $('parceiro').innerHTML = '<option value="">Todos</option>' +
+      isps.map(function (i) { return '<option>' + esc(i) + '</option>'; }).join('');
+  }
+
+  function ligarEventos() {
+    ['q', 'uf', 'parceiro', 'onlyGap'].forEach(function (id) {
+      $(id).addEventListener('input', function () { visiveis = PAGE; render(); });
+    });
+    $('clear').addEventListener('click', function () {
+      $('q').value = ''; $('uf').value = '';
+      faixaAtiva = ''; renderPills();
+      $('parceiro').value = ''; $('onlyGap').checked = false;
+      visiveis = PAGE; render();
+    });
+    $('loadMore').addEventListener('click', function () { visiveis += PAGE; render(); });
+    $('resetWeights').addEventListener('click', function () {
+      pesos = Object.assign({}, pesosPadrao);
+      montarSliders(); enriquecer(); renderKpis(); render();
+    });
+
+    document.querySelectorAll('thead th[data-k]').forEach(function (th) {
+      var acionar = function () {
+        var k = th.dataset.k;
+        ordem = { k: k, dir: ordem.k === k ? -ordem.dir : (k === 'municipio' ? 1 : -1) };
+        document.querySelectorAll('thead th[data-k]').forEach(function (o) { o.setAttribute('aria-sort', 'none'); });
+        th.setAttribute('aria-sort', ordem.dir === 1 ? 'ascending' : 'descending');
+        visiveis = PAGE; render();
+      };
+      th.setAttribute('tabindex', '0');
+      th.addEventListener('click', acionar);
+      th.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); acionar(); }
+      });
+    });
+
+    $('tbody').addEventListener('click', function (e) {
+      var tr = e.target.closest('tr[data-i]');
+      if (tr) abrir(tr.dataset.i);
+    });
+    $('tbody').addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter') return;
+      var tr = e.target.closest('tr[data-i]');
+      if (tr) { e.preventDefault(); abrir(tr.dataset.i); }
+    });
+
+    $('dClose').addEventListener('click', fechar);
+    $('overlay').addEventListener('click', fechar);
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !$('drawer').hidden) fechar();
+    });
+  }
+
+  // ---------- Carga ----------
+  function skeleton() {
+    $('tbody').innerHTML = Array(6).join().split(',')
+      .map(function () { return '<tr><td colspan="11" class="skel"></td></tr>'; }).join('');
+  }
+
+  function erro(msg) {
+    $('tbody').innerHTML = '<tr><td colspan="11"><div class="state">' +
+      '<h3>Dados de mercado indisponíveis</h3><p>' + esc(msg) + '</p></div></td></tr>';
+  }
+
+  function iniciar(json) {
+    dados = json;
+    if (dados.municipios && !Array.isArray(dados.municipios)) {
+      dados.municipios = Object.keys(dados.municipios).map(function (k) {
+        return Object.assign({ ibge: k }, dados.municipios[k]);
+      });
+    }
+    pesosPadrao = json.pesos_iac || { demanda:.25, folga:.30, espectro:.20, parceiro:.20 };
+    pesos = Object.assign({}, pesosPadrao);
+    enriquecer();
+    preencherSelects();
+    montarSliders();
+    renderKpis();
+    render();
+    ligarEventos();
+    $('prov').textContent = 'Gerado em ' +
+      new Date(json.generated_at).toLocaleString('pt-BR') +
+      (json.dados === 'demonstracao' ? ' · dados de demonstração' : '');
+    if (json.dados !== 'demonstracao') {
+      var banner = document.querySelector('.demo-banner');
+      if (banner) banner.remove();
+      var zona = $('carga');
+      if (zona) zona.innerHTML = '<div class="sub">Dados reais carregados · ' +
+        dados.municipios.length + ' municípios · gerado em ' +
+        new Date(json.generated_at).toLocaleString('pt-BR') + '</div>';
+    }
+  }
+
+  function lerArquivo(file) {
+    if (!file) return;
+    var leitor = new FileReader();
+    leitor.onload = function (ev) {
+      try {
+        iniciar(JSON.parse(ev.target.result));
+      } catch (e) {
+        erro('Arquivo inválido: ' + e.message);
+      }
+    };
+    leitor.onerror = function () { erro('Não foi possível ler o arquivo.'); };
+    leitor.readAsText(file);
+  }
+
+  function ligarCarga() {
+    var zona = $('carga');
+    if (!zona) return;
+    $('btnArquivo').addEventListener('click', function () { $('arquivo').click(); });
+    $('arquivo').addEventListener('change', function (e) { lerArquivo(e.target.files[0]); });
+    ['dragenter', 'dragover'].forEach(function (ev) {
+      zona.addEventListener(ev, function (e) {
+        e.preventDefault(); zona.classList.add('arrastando');
+      });
+    });
+    ['dragleave', 'drop'].forEach(function (ev) {
+      zona.addEventListener(ev, function (e) {
+        e.preventDefault(); zona.classList.remove('arrastando');
+        if (ev === 'drop') lerArquivo(e.dataTransfer.files[0]);
+      });
+    });
+  }
+
+  ligarCarga();
+  skeleton();
+  // Em produção o JSON vem do repositório (GitHub Pages). Aqui, se o fetch falhar
+  // — arquivo aberto direto do disco, por exemplo — cai no seed embutido abaixo.
+  // Cache-busting: o CDN do GitHub Pages guarda o arquivo em cache por
+  // alguns minutos. O parâmetro ?v=timestamp muda a URL a cada carga, o que
+  // força uma busca nova mesmo que o CDN tivesse guardado a versão anterior.
+  // cache:'no-store' evita também o cache do próprio navegador.
+  fetch('./data/market_intel.json?v=' + Date.now(), { cache: 'no-store' })
+    .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(iniciar)
+    .catch(function () {
+      var el = document.getElementById('seed');
+      if (!el) return erro('Não foi possível carregar ./data/market_intel.json e não há dados embutidos.');
+      try { iniciar(JSON.parse(el.textContent)); }
+      catch (e) { erro('O arquivo de dados está malformado: ' + e.message); }
+    });
+})();
+</script>
+
+<script type="application/json" id="seed">
+{
+ "schema_version": "1.0",
+ "generated_at": "2026-08-11T03:00:00Z",
+ "dados": "demonstracao",
+ "fontes": {
+  "estacoes_smp": {
+   "origem": "Anatel/Mosaico",
+   "referencia": "(demo)"
+  },
+  "acessos_blf": {
+   "origem": "Anatel/Painel de Acessos",
+   "referencia": "(demo)"
+  },
+  "demografia": {
+   "origem": "IBGE Censo 2022",
+   "referencia": "(demo)"
+  }
+ },
+ "pesos_iac": {
+  "demanda": 0.25,
+  "folga": 0.3,
+  "espectro": 0.2,
+  "parceiro": 0.2
+ },
+ "municipios": [
+  {
+   "ibge": "DEMO-001",
+   "municipio": "São Tomás de Aquino",
+   "uf": "MG",
+   "corredor": "NETSPEED — Sudoeste",
+   "blocos": {
+    "demanda": 58,
+    "folga": 88,
+    "espectro": 100,
+    "parceiro": 79
+   },
+   "cobertura_dados_pct": 92,
+   "gap_5g_pct": 100,
+   "concorrencia": {
+    "iez": {
+     "bw_total_mhz": 100,
+     "faixas": [
+      "700",
+      "3500"
+     ],
+     "tecnologia_max": "5G NR"
+    },
+    "resumo_por_operadora": [
+     {
+      "operadora": "Claro",
+      "n_erbs": 2,
+      "faixas": [
+       "700",
+       "2100",
+       "2600"
+      ],
+      "tem_35ghz": false,
+      "bw_estimada_mhz": 45,
+      "tecnologia_max": "LTE"
+     },
+     {
+      "operadora": "Vivo",
+      "n_erbs": 1,
+      "faixas": [
+       "700"
+      ],
+      "tem_35ghz": false,
+      "bw_estimada_mhz": 20,
+      "tecnologia_max": "LTE"
+     }
+    ]
+   },
+   "banda_larga_fixa": {
+    "acessos_total": 1392,
+    "prestadoras": [
+     {
+      "nome": "NETSPEED",
+      "acessos": 872,
+      "share_pct": 62.6,
+      "cresc_12m_pct": 8.1,
+      "tecnologia": "FTTH",
+      "iap": 81
+     },
+     {
+      "nome": "Outros ISPs locais",
+      "acessos": 380,
+      "share_pct": 27.3,
+      "cresc_12m_pct": 2.0,
+      "tecnologia": "FTTH",
+      "iap": null
+     },
+     {
+      "nome": "Claro NET",
+      "acessos": 141,
+      "share_pct": 10.1,
+      "cresc_12m_pct": -1.4,
+      "tecnologia": "HFC",
+      "iap": null
+     }
+    ]
+   },
+   "demografia": {
+    "pop_total": 7000,
+    "renda_media": 2100,
+    "urbanizacao_pct": 82.9,
+    "domicilios": 2400
+   }
+  },
+  {
+   "ibge": "DEMO-002",
+   "municipio": "Itaú de Minas",
+   "uf": "MG",
+   "corredor": "NETSPEED — Sudoeste",
+   "blocos": {
+    "demanda": 71,
+    "folga": 62,
+    "espectro": 100,
+    "parceiro": 68
+   },
+   "cobertura_dados_pct": 88,
+   "gap_5g_pct": 67,
+   "concorrencia": {
+    "iez": {
+     "bw_total_mhz": 100,
+     "faixas": [
+      "700",
+      "3500"
+     ],
+     "tecnologia_max": "5G NR"
+    },
+    "resumo_por_operadora": [
+     {
+      "operadora": "Claro",
+      "n_erbs": 4,
+      "faixas": [
+       "700",
+       "1800",
+       "2100",
+       "2600",
+       "3500"
+      ],
+      "tem_35ghz": true,
+      "bw_estimada_mhz": 125,
+      "tecnologia_max": "5G NR"
+     },
+     {
+      "operadora": "Vivo",
+      "n_erbs": 3,
+      "faixas": [
+       "700",
+       "2100",
+       "2600"
+      ],
+      "tem_35ghz": false,
+      "bw_estimada_mhz": 55,
+      "tecnologia_max": "LTE"
+     },
+     {
+      "operadora": "TIM",
+      "n_erbs": 2,
+      "faixas": [
+       "700",
+       "1800"
+      ],
+      "tem_35ghz": false,
+      "bw_estimada_mhz": 35,
+      "tecnologia_max": "LTE"
+     }
+    ]
+   },
+   "banda_larga_fixa": {
+    "acessos_total": 3366,
+    "prestadoras": [
+     {
+      "nome": "NETSPEED",
+      "acessos": 1537,
+      "share_pct": 45.7,
+      "cresc_12m_pct": 6.2,
+      "tecnologia": "FTTH",
+      "iap": 72
+     },
+     {
+      "nome": "Claro NET",
+      "acessos": 951,
+      "share_pct": 28.3,
+      "cresc_12m_pct": 1.1,
+      "tecnologia": "HFC",
+      "iap": null
+     },
+     {
+      "nome": "Outros ISPs locais",
+      "acessos": 878,
+      "share_pct": 26.0,
+      "cresc_12m_pct": 3.4,
+      "tecnologia": "FTTH",
+      "iap": null
+     }
+    ]
+   },
+   "demografia": {
+    "pop_total": 15000,
+    "renda_media": 2400,
+    "urbanizacao_pct": 92.0,
+    "domicilios": 5100
+   }
+  },
+  {
+   "ibge": "DEMO-003",
+   "municipio": "Paraisópolis",
+   "uf": "MG",
+   "corredor": "G6 — Mantiqueira SE",
+   "blocos": {
+    "demanda": 76,
+    "folga": 74,
+    "espectro": 100,
+    "parceiro": 86
+   },
+   "cobertura_dados_pct": 90,
+   "gap_5g_pct": 100,
+   "concorrencia": {
+    "iez": {
+     "bw_total_mhz": 100,
+     "faixas": [
+      "700",
+      "3500"
+     ],
+     "tecnologia_max": "5G NR"
+    },
+    "resumo_por_operadora": [
+     {
+      "operadora": "Vivo",
+      "n_erbs": 3,
+      "faixas": [
+       "700",
+       "2100",
+       "2600"
+      ],
+      "tem_35ghz": false,
+      "bw_estimada_mhz": 55,
+      "tecnologia_max": "LTE"
+     },
+     {
+      "operadora": "Claro",
+      "n_erbs": 2,
+      "faixas": [
+       "700",
+       "2600"
+      ],
+      "tem_35ghz": false,
+      "bw_estimada_mhz": 40,
+      "tecnologia_max": "LTE"
+     },
+     {
+      "operadora": "TIM",
+      "n_erbs": 1,
+      "faixas": [
+       "700"
+      ],
+      "tem_35ghz": false,
+      "bw_estimada_mhz": 20,
+      "tecnologia_max": "LTE"
+     }
+    ]
+   },
+   "banda_larga_fixa": {
+    "acessos_total": 4216,
+    "prestadoras": [
+     {
+      "nome": "G6 Internet",
+      "acessos": 2448,
+      "share_pct": 58.1,
+      "cresc_12m_pct": 12.4,
+      "tecnologia": "FTTH",
+      "iap": 86
+     },
+     {
+      "nome": "Outros ISPs locais",
+      "acessos": 1292,
+      "share_pct": 30.6,
+      "cresc_12m_pct": 4.0,
+      "tecnologia": "FTTH",
+      "iap": null
+     },
+     {
+      "nome": "Vivo Fibra",
+      "acessos": 476,
+      "share_pct": 11.3,
+      "cresc_12m_pct": 5.5,
+      "tecnologia": "FTTH",
+      "iap": null
+     }
+    ]
+   },
+   "demografia": {
+    "pop_total": 21000,
+    "renda_media": 2250,
+    "urbanizacao_pct": 83.3,
+    "domicilios": 6800
+   }
+  },
+  {
+   "ibge": "DEMO-004",
+   "municipio": "Brazópolis",
+   "uf": "MG",
+   "corredor": "G6 — Mantiqueira SE",
+   "blocos": {
+    "demanda": 49,
+    "folga": 91,
+    "espectro": 100,
+    "parceiro": 88
+   },
+   "cobertura_dados_pct": 85,
+   "gap_5g_pct": 100,
+   "concorrencia": {
+    "iez": {
+     "bw_total_mhz": 100,
+     "faixas": [
+      "700",
+      "3500"
+     ],
+     "tecnologia_max": "5G NR"
+    },
+    "resumo_por_operadora": [
+     {
+      "operadora": "Vivo",
+      "n_erbs": 1,
+      "faixas": [
+       "700"
+      ],
+      "tem_35ghz": false,
+      "bw_estimada_mhz": 20,
+      "tecnologia_max": "LTE"
+     },
+     {
+      "operadora": "Claro",
+      "n_erbs": 1,
+      "faixas": [
+       "700",
+       "2600"
+      ],
+      "tem_35ghz": false,
+      "bw_estimada_mhz": 40,
+      "tecnologia_max": "LTE"
+     }
+    ]
+   },
+   "banda_larga_fixa": {
+    "acessos_total": 2162,
+    "prestadoras": [
+     {
+      "nome": "G6 Internet",
+      "acessos": 1534,
+      "share_pct": 71.0,
+      "cresc_12m_pct": 9.8,
+      "tecnologia": "FTTH",
+      "iap": 88
+     },
+     {
+      "nome": "Outros ISPs locais",
+      "acessos": 628,
+      "share_pct": 29.0,
+      "cresc_12m_pct": 1.2,
+      "tecnologia": "FTTH",
+      "iap": null
+     }
+    ]
+   },
+   "demografia": {
+    "pop_total": 14000,
+    "renda_media": 1950,
+    "urbanizacao_pct": 58.6,
+    "domicilios": 4600
+   }
+  },
+  {
+   "ibge": "DEMO-005",
+   "municipio": "Itajubá",
+   "uf": "MG",
+   "corredor": "G6 — Eixo Itajubá",
+   "blocos": {
+    "demanda": 94,
+    "folga": 31,
+    "espectro": 62,
+    "parceiro": 54
+   },
+   "cobertura_dados_pct": 94,
+   "gap_5g_pct": 0,
+   "concorrencia": {
+    "iez": {
+     "bw_total_mhz": 100,
+     "faixas": [
+      "700",
+      "3500"
+     ],
+     "tecnologia_max": "5G NR"
+    },
+    "resumo_por_operadora": [
+     {
+      "operadora": "Claro",
+      "n_erbs": 14,
+      "faixas": [
+       "700",
+       "1800",
+       "2100",
+       "2600",
+       "3500"
+      ],
+      "tem_35ghz": true,
+      "bw_estimada_mhz": 145,
+      "tecnologia_max": "5G NR"
+     },
+     {
+      "operadora": "Vivo",
+      "n_erbs": 12,
+      "faixas": [
+       "700",
+       "1800",
+       "2100",
+       "2600",
+       "3500"
+      ],
+      "tem_35ghz": true,
+      "bw_estimada_mhz": 140,
+      "tecnologia_max": "5G NR"
+     },
+     {
+      "operadora": "TIM",
+      "n_erbs": 9,
+      "faixas": [
+       "700",
+       "1800",
+       "2100",
+       "3500"
+      ],
+      "tem_35ghz": true,
+      "bw_estimada_mhz": 120,
+      "tecnologia_max": "5G NR"
+     }
+    ]
+   },
+   "banda_larga_fixa": {
+    "acessos_total": 25740,
+    "prestadoras": [
+     {
+      "nome": "Claro NET",
+      "acessos": 8967,
+      "share_pct": 34.8,
+      "cresc_12m_pct": 2.1,
+      "tecnologia": "HFC",
+      "iap": null
+     },
+     {
+      "nome": "Outros ISPs locais",
+      "acessos": 7971,
+      "share_pct": 31.0,
+      "cresc_12m_pct": 5.0,
+      "tecnologia": "FTTH",
+      "iap": null
+     },
+     {
+      "nome": "Vivo Fibra",
+      "acessos": 5563,
+      "share_pct": 21.6,
+      "cresc_12m_pct": 7.2,
+      "tecnologia": "FTTH",
+      "iap": null
+     },
+     {
+      "nome": "G6 Internet",
+      "acessos": 3238,
+      "share_pct": 12.6,
+      "cresc_12m_pct": 14.0,
+      "tecnologia": "FTTH",
+      "iap": 54
+     }
+    ]
+   },
+   "demografia": {
+    "pop_total": 97000,
+    "renda_media": 3100,
+    "urbanizacao_pct": 94.8,
+    "domicilios": 33000
+   }
+  },
+  {
+   "ibge": "DEMO-006",
+   "municipio": "Município sem cobertura de dados",
+   "uf": "ES",
+   "corredor": "Prospecção",
+   "blocos": {
+    "demanda": null,
+    "folga": 40,
+    "espectro": 100,
+    "parceiro": null
+   },
+   "cobertura_dados_pct": 32,
+   "gap_5g_pct": null,
+   "concorrencia": {
+    "iez": {
+     "bw_total_mhz": 100,
+     "faixas": [
+      "700",
+      "3500"
+     ],
+     "tecnologia_max": "5G NR"
+    },
+    "resumo_por_operadora": []
+   },
+   "banda_larga_fixa": {
+    "acessos_total": null,
+    "prestadoras": []
+   },
+   "demografia": {
+    "pop_total": null,
+    "renda_media": null,
+    "urbanizacao_pct": null,
+    "domicilios": null
+   }
+  },
+  {
+   "ibge": "DEMO-007",
+   "municipio": "Município pequeno sem ISP",
+   "uf": "MG",
+   "corredor": "Obrigação — sem parceiro",
+   "demografia": {
+    "pop_total": 4200,
+    "renda_media": 1650,
+    "urbanizacao_pct": 61.0,
+    "domicilios": 1450
+   },
+   "blocos": {
+    "demanda": 34,
+    "folga": 95,
+    "espectro": 100,
+    "parceiro": 10
+   },
+   "cobertura_dados_pct": 84,
+   "gap_5g_pct": 100,
+   "concorrencia": {
+    "iez": {
+     "bw_total_mhz": 100,
+     "faixas": [
+      "700",
+      "3500"
+     ],
+     "tecnologia_max": "5G NR"
+    },
+    "resumo_por_operadora": [
+     {
+      "operadora": "Vivo",
+      "n_erbs": 1,
+      "faixas": [
+       "700"
+      ],
+      "tem_35ghz": false,
+      "bw_estimada_mhz": 20,
+      "tecnologia_max": "LTE"
+     }
+    ]
+   },
+   "banda_larga_fixa": {
+    "acessos_total": 493,
+    "prestadoras": [
+     {
+      "nome": "Outros ISPs locais",
+      "acessos": 493,
+      "share_pct": 100.0,
+      "cresc_12m_pct": 1.0,
+      "tecnologia": "FTTH",
+      "iap": null
+     }
+    ]
+   },
+   "varejo": {
+    "pdv_por_tipo": [
+     {
+      "tipo": "Mercearias e mercados",
+      "n": 11,
+      "estabelecimentos": [
+       {
+        "razao_social": "Supermercado Bom Preço Ltda",
+        "nome_fantasia": "Mercado Bom Preço",
+        "cnpj": "12.345.678/0001-90",
+        "endereco": "Av. Principal, 240 - Centro",
+        "situacao": "Ativa",
+        "anos_cnpj": 14
+       },
+       {
+        "razao_social": "J. Ribeiro Comércio de Alimentos ME",
+        "nome_fantasia": "Mercadinho do Zé",
+        "cnpj": "23.456.789/0001-01",
+        "endereco": "Rua das Flores, 88 - Centro",
+        "situacao": "Ativa",
+        "anos_cnpj": 3
+       },
+       {
+        "razao_social": "Comercial Santa Rita Ltda",
+        "nome_fantasia": "Mercado Santa Rita",
+        "cnpj": "34.567.890/0001-12",
+        "endereco": "Rua São Pedro, 15 - Vila Nova",
+        "situacao": "Ativa",
+        "anos_cnpj": 22
+       }
+      ]
+     },
+     {
+      "tipo": "Farmácias",
+      "n": 3,
+      "estabelecimentos": [
+       {
+        "razao_social": "Drogaria Central de Minas Ltda",
+        "nome_fantasia": "Drogaria Central",
+        "cnpj": "45.678.901/0001-23",
+        "endereco": "Av. Principal, 310 - Centro",
+        "situacao": "Ativa",
+        "anos_cnpj": 9
+       },
+       {
+        "razao_social": "Farmácia Popular do Vale ME",
+        "nome_fantasia": "Farmácia do Vale",
+        "cnpj": "56.789.012/0001-34",
+        "endereco": "Rua Sete de Setembro, 42 - Centro",
+        "situacao": "Ativa",
+        "anos_cnpj": 1
+       }
+      ]
+     },
+     {
+      "tipo": "Padarias",
+      "n": 4,
+      "estabelecimentos": [
+       {
+        "razao_social": "Panificadora Trigo de Ouro Ltda",
+        "nome_fantasia": "Padaria Trigo de Ouro",
+        "cnpj": "67.890.123/0001-45",
+        "endereco": "Av. Principal, 155 - Centro",
+        "situacao": "Ativa",
+        "anos_cnpj": 18
+       },
+       {
+        "razao_social": "M. Souza Panificação ME",
+        "nome_fantasia": "Padaria da Praça",
+        "cnpj": "78.901.234/0001-56",
+        "endereco": "Praça Matriz, 3 - Centro",
+        "situacao": "Ativa",
+        "anos_cnpj": 6
+       }
+      ]
+     },
+     {
+      "tipo": "Lotéricas e correspondentes",
+      "n": 2,
+      "estabelecimentos": [
+       {
+        "razao_social": "Loteria Sorte Grande Ltda",
+        "nome_fantasia": "Lotérica Sorte Grande",
+        "cnpj": "89.012.345/0001-67",
+        "endereco": "Av. Principal, 200 - Centro",
+        "situacao": "Ativa",
+        "anos_cnpj": 11
+       }
+      ]
+     },
+     {
+      "tipo": "Acessórios de celular / assistência",
+      "n": 2,
+      "estabelecimentos": [
+       {
+        "razao_social": "Cell Center Assistência Técnica ME",
+        "nome_fantasia": "Cell Center",
+        "cnpj": "90.123.456/0001-78",
+        "endereco": "Rua do Comércio, 71 - Centro",
+        "situacao": "Ativa",
+        "anos_cnpj": 1
+       }
+      ]
+     },
+     {
+      "tipo": "Bancas e conveniências",
+      "n": 1,
+      "estabelecimentos": [
+       {
+        "razao_social": "Banca Jornaleiro do Centro ME",
+        "nome_fantasia": "Banca Central",
+        "cnpj": "01.234.567/0001-89",
+        "endereco": "Praça Matriz, s/n - Centro",
+        "situacao": "Ativa",
+        "anos_cnpj": 27
+       }
+      ]
+     }
+    ],
+    "perfil": {
+     "idade_mediana": 38,
+     "renda_media": 1650,
+     "urbanizacao_pct": 61.0,
+     "domicilios_com_internet_pct": 54
+    },
+    "modelos_sugeridos": [
+     {
+      "nome": "eSIM com ativação remota",
+      "desc": "Elimina estoque, logística e reposição de chip físico. CAC vira só a comissão de ativação. Depende da penetração de aparelhos compatíveis — medir antes de assumir."
+     },
+     {
+      "nome": "PDV âncora único com consignação",
+      "desc": "Um estabelecimento de maior fluxo (mercado ou lotérica) em consignação, em vez de pulverizar em 23 pontos. Capital parado mínimo e uma só relação para gerir."
+     },
+     {
+      "nome": "Comissão por ativação, não por chip entregue",
+      "desc": "Paga-se resultado, não presença. Transforma CAC fixo em variável e alinha o lojista à qualidade da venda."
+     },
+     {
+      "nome": "Revendedor pessoa física local",
+      "desc": "Um agente com vínculo comunitário costuma converter mais que vitrine em município deste porte. Remuneração só por ativação e recorrência."
+     },
+     {
+      "nome": "Carona no serviço do ISP vizinho",
+      "desc": "Mesmo sem parceria de rede, um ISP de município contíguo pode revender o chip. Testar antes de montar canal do zero."
+     }
+    ]
+   }
+  },
+  {
+   "ibge": "3145802",
+   "municipio": "Onça de Pitangui",
+   "uf": "MG",
+   "corredor": "Obrigação — dado real IBGE",
+   "dados_reais": true,
+   "demografia": {
+    "pop_total": 2969,
+    "domicilios": null,
+    "urbanizacao_pct": null,
+    "renda_media": null,
+    "area_km2": 246.976,
+    "densidade_hab_km2": 12.02,
+    "idhm": 0.663,
+    "pib_per_capita": 27742.48
+   },
+   "blocos": {
+    "demanda": null,
+    "folga": null,
+    "espectro": 100,
+    "parceiro": null
+   },
+   "cobertura_dados_pct": 18,
+   "gap_5g_pct": null,
+   "concorrencia": {
+    "iez": {
+     "bw_total_mhz": 100,
+     "faixas": [
+      "700",
+      "3500"
+     ],
+     "tecnologia_max": "5G NR"
+    },
+    "resumo_por_operadora": []
+   },
+   "banda_larga_fixa": {
+    "acessos_total": null,
+    "prestadoras": []
+   },
+   "varejo": {
+    "pdv_por_tipo": [],
+    "perfil": null,
+    "modelos_sugeridos": []
+   }
+  },
+  {
+   "ibge": "3119005",
+   "municipio": "Cordislândia",
+   "uf": "MG",
+   "corredor": "Obrigação — dado real IBGE",
+   "dados_reais": true,
+   "demografia": {
+    "pop_total": 3200,
+    "domicilios": null,
+    "urbanizacao_pct": null,
+    "renda_media": null,
+    "area_km2": 179.543,
+    "densidade_hab_km2": 17.82,
+    "idhm": 0.66,
+    "pib_per_capita": 40996.03
+   },
+   "blocos": {
+    "demanda": null,
+    "folga": null,
+    "espectro": 100,
+    "parceiro": null
+   },
+   "cobertura_dados_pct": 18,
+   "gap_5g_pct": null,
+   "concorrencia": {
+    "iez": {
+     "bw_total_mhz": 100,
+     "faixas": [
+      "700",
+      "3500"
+     ],
+     "tecnologia_max": "5G NR"
+    },
+    "resumo_por_operadora": []
+   },
+   "banda_larga_fixa": {
+    "acessos_total": null,
+    "prestadoras": []
+   },
+   "varejo": {
+    "pdv_por_tipo": [],
+    "perfil": null,
+    "modelos_sugeridos": []
+   }
+  }
+ ],
+ "isps": {
+  "NETSPEED": {
+   "iap_consolidado": 79,
+   "base_total": 18400,
+   "n_municipios": 25,
+   "sobreposicao_espectro_iez_pct": 96,
+   "modelo_comercial": {
+    "setup": "pago pelo ISP (CAPEX do ISP)",
+    "receita": "participação maior do ISP, menor da IEZ — percentuais a definir",
+    "racional": "O ISP tem base e caixa para investir. A IEZ troca percentual de receita por CAPEX zero e payback antecipado."
+   }
+  },
+  "G6 Internet": {
+   "iap_consolidado": 76,
+   "base_total": 22100,
+   "n_municipios": 16,
+   "sobreposicao_espectro_iez_pct": 88,
+   "modelo_comercial": {
+    "setup": "pago pelo ISP (CAPEX do ISP)",
+    "receita": "participação maior do ISP, menor da IEZ — percentuais a definir",
+    "racional": "Base FTTH forte e em crescimento sustenta a conversão. Percentuais dependem da negociação, não do score."
+   }
+  }
+ }
+}
+</script>
+
+</body>
+</html>
