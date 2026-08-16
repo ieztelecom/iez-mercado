@@ -128,12 +128,22 @@
   #carga code { font-size:11px; background:rgba(0,0,0,0.05); padding:1px 5px; border-radius:4px; }
 
   /* --- KPIs --- */
-  .kpis { display:grid; grid-template-columns: repeat(5, 1fr); gap:12px; }
-  .kpi { padding:14px 16px; }
+  .kpis { display:grid; grid-template-columns: repeat(6, 1fr); gap:12px; }
+  .kpi {
+    padding:14px 16px; border:1.5px solid transparent; text-align:left; cursor:pointer;
+    font:inherit; transition:border-color .12s, background .12s;
+  }
+  .kpi:hover { border-color:var(--line); }
   .kpi .n { font-size:26px; font-weight:600; letter-spacing:-0.02em; line-height:1.1; }
   .kpi .l { font-size:11px; color:var(--ink-3); text-transform:uppercase; letter-spacing:0.05em; margin-top:4px; }
   .kpi .dot { width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:6px; vertical-align:middle; }
-  .kpi-destaque { box-shadow: var(--shadow-sm), inset 0 0 0 1px rgba(0,0,0,.03); }
+  .kpi-ativo { box-shadow: var(--shadow-sm); }
+  @media (max-width: 900px) {
+    .kpis { grid-template-columns: repeat(3, 1fr); }
+  }
+  @media (max-width: 560px) {
+    .kpis { grid-template-columns: repeat(2, 1fr); }
+  }
 
   .barra-faixas {
     display:flex; height:6px; border-radius:3px; overflow:hidden;
@@ -531,7 +541,7 @@
           <path d="M12 16v-5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
           <circle cx="12" cy="8" r="1" fill="currentColor"/>
         </svg>
-        Como funciona o IAC e o IAP
+        Como funciona o IAC, IAP e HHI
       </button>
     </div>
     <img class="logo-iez" src="data:image/png;base64,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" alt="IEZ Telecom">
@@ -556,19 +566,15 @@
     </div>
   </div>
 
-  <section class="kpis" id="kpis" aria-label="Resumo por faixa de decisão"></section>
+  <section class="kpis" id="kpis" role="group" aria-label="Filtrar por faixa de decisão"></section>
   <div class="barra-faixas" id="barraFaixas" aria-hidden="true"></div>
 
-  <div class="filtro-secao">
-    <label class="sub secao-titulo">Filtrar por faixa de decisão</label>
-    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
-      <div id="pillsFaixa" class="pills-faixa" role="group" aria-label="Filtrar por faixa de decisão" style="flex:1"></div>
-      <button type="button" id="btnObrigacoes" class="pill" aria-pressed="false">
-        Obrigações IEZ 5G
-      </button>
-    </div>
-    <p id="obrigacoesStatus" class="sub" style="margin-top:8px;display:none"></p>
+  <div class="filtro-secao" style="display:flex;justify-content:flex-end">
+    <button type="button" id="btnObrigacoes" class="pill" aria-pressed="false">
+      Obrigações IEZ 5G
+    </button>
   </div>
+  <p id="obrigacoesStatus" class="sub" style="margin-top:8px;display:none"></p>
 
   <div id="chipIspPresenca" style="display:none"></div>
 
@@ -635,7 +641,7 @@
 <div class="modal-metodologia" id="modalMetodologia" role="dialog" aria-modal="true"
      aria-labelledby="metodologiaTitulo" hidden>
   <div class="modal-metodologia-head">
-    <h2 id="metodologiaTitulo" style="font-size:17px;margin:0">Como funciona o IAC, o IAP e o HHI</h2>
+    <h2 id="metodologiaTitulo" style="font-size:17px;margin:0">Como funciona o IAC, IAP e HHI</h2>
     <button class="x" id="metodologiaClose" aria-label="Fechar">×</button>
   </div>
   <div class="modal-metodologia-body" id="metodologiaBody"></div>
@@ -1279,69 +1285,61 @@ window.addEventListener('load', function () {
   }
 
   // ---------- Render ----------
+  var contagemFaixas = {};
+
   function renderKpis() {
     var cont = { 'GO':0, 'CONDITIONAL GO':0, 'WATCHLIST':0, 'NO-GO':0, 'INSUFFICIENT DATA':0 };
     dados.municipios.forEach(function (m) { cont[m._faixa]++; });
-    var mapa = [
-      ['GO', 'var(--go)', 'var(--go-bg)'], ['CONDITIONAL GO', 'var(--cond)', 'var(--cond-bg)'],
-      ['WATCHLIST', 'var(--watch)', 'var(--watch-bg)'], ['NO-GO', 'var(--nogo)', 'var(--nogo-bg)'],
-      ['INSUFFICIENT DATA', 'var(--nodata)', 'var(--nodata-bg)']
-    ];
+    contagemFaixas = cont;
     var total = dados.municipios.length || 1;
 
-    // GO ("Priorizar") ganha destaque — fundo tintado, número maior. É a
-    // faixa que a IEZ mais quer identificar rápido; os demais números
-    // ficam com peso visual menor, para não competir por atenção.
-    $('kpis').innerHTML = mapa.map(function (p, i) {
-      var destaque = i === 0;
-      return '<div class="card kpi' + (destaque ? ' kpi-destaque' : '') + '"' +
-        (destaque ? ' style="background:' + p[2] + '"' : '') + '>' +
-        '<div class="n"' + (destaque ? ' style="font-size:30px;color:' + p[1] + '"' : '') + '>' + cont[p[0]] + '</div>' +
-        '<div class="l"><span class="dot" style="background:' + p[1] + '"></span>' + faixaPt(p[0]) + '</div></div>';
-    }).join('');
+    // TOTAL entra como o primeiro card — funciona como "Todas" (sem
+    // filtro nenhum aplicado) e mostra a soma do portfólio inteiro.
+    var mapa = [
+      ['', 'TOTAL', 'var(--ink)', 'rgba(0,0,0,.05)', total],
+      ['GO', 'GO', 'var(--go)', 'var(--go-bg)', cont['GO']],
+      ['CONDITIONAL GO', 'CONDITIONAL GO', 'var(--cond)', 'var(--cond-bg)', cont['CONDITIONAL GO']],
+      ['WATCHLIST', 'WATCHLIST', 'var(--watch)', 'var(--watch-bg)', cont['WATCHLIST']],
+      ['NO-GO', 'NO-GO', 'var(--nogo)', 'var(--nogo-bg)', cont['NO-GO']],
+      ['INSUFFICIENT DATA', 'INSUFFICIENT DATA', 'var(--nodata)', 'var(--nodata-bg)', cont['INSUFFICIENT DATA']],
+    ];
 
-    // Barra segmentada única — largura proporcional por faixa, resume a
-    // distribuição do portfólio inteiro num relance, sem precisar somar
-    // cinco números soltos de cabeça.
-    var barraHtml = mapa.map(function (p) {
-      var pct = (cont[p[0]] / total * 100);
-      if (pct <= 0) return '';
-      return '<div style="width:' + pct + '%;background:' + p[1] + '" title="' +
-        faixaPt(p[0]) + ': ' + cont[p[0]] + ' (' + pct.toFixed(1) + '%)"></div>';
-    }).join('');
-    $('barraFaixas').innerHTML = barraHtml;
-
-    contagemFaixas = cont;
-    renderPills();
-  }
-
-  // Mapa de código interno -> classe CSS do pill, reaproveitando as cores
-  // já definidas para as tags da tabela (t-go, t-cond, ...).
-  var PILL_CLS = {
-    'GO': 'p-go', 'CONDITIONAL GO': 'p-cond', 'WATCHLIST': 'p-watch',
-    'NO-GO': 'p-nogo', 'INSUFFICIENT DATA': 'p-nodata'
-  };
-  var contagemFaixas = {};
-
-  function renderPills() {
-    var ordemFaixas = ['GO', 'CONDITIONAL GO', 'WATCHLIST', 'NO-GO', 'INSUFFICIENT DATA'];
-    var html = '<button type="button" class="pill" aria-pressed="' + (faixaAtiva === '' ? 'true' : 'false') + '" data-fx="">' +
-      'Todas <span class="n">' + dados.municipios.length + '</span></button>';
-    html += ordemFaixas.map(function (fx) {
+    // Os cards de KPI SÃO o filtro por faixa agora — clicar em qualquer um
+    // aplica o filtro e destaca visualmente qual está ativo (fundo tintado
+    // + borda colorida), em vez de ter dois controles redundantes (cards +
+    // pills) para a mesma coisa.
+    $('kpis').innerHTML = mapa.map(function (item) {
+      var fx = item[0], rotulo = item[1], cor = item[2], corBg = item[3], n = item[4];
       var ativo = faixaAtiva === fx;
-      return '<button type="button" class="pill ' + PILL_CLS[fx] + '" aria-pressed="' + ativo + '" data-fx="' + fx + '">' +
-        '<span class="dot" aria-hidden="true"></span>' + faixaPt(fx) +
-        ' <span class="n">' + (contagemFaixas[fx] || 0) + '</span></button>';
+      var rotuloExibir = fx === '' ? 'Total' : faixaPt(fx);
+      return '<button type="button" class="card kpi' + (ativo ? ' kpi-ativo' : '') + '" ' +
+        'aria-pressed="' + ativo + '" data-fx="' + fx + '"' +
+        (ativo ? ' style="background:' + corBg + ';border-color:' + cor + '"' : '') + '>' +
+        '<div class="n" style="color:' + (ativo ? cor : 'var(--ink)') + '">' + n + '</div>' +
+        '<div class="l">' + (fx ? '<span class="dot" style="background:' + cor + '"></span>' : '') +
+        rotuloExibir + '</div></button>';
     }).join('');
-    $('pillsFaixa').innerHTML = html;
-    $('pillsFaixa').querySelectorAll('.pill').forEach(function (btn) {
+
+    $('kpis').querySelectorAll('.kpi').forEach(function (btn) {
       btn.addEventListener('click', function () {
         faixaAtiva = btn.dataset.fx;
         visiveis = PAGE;
-        renderPills();
+        renderKpis();
         render();
       });
     });
+
+    // Barra segmentada única — largura proporcional por faixa, resume a
+    // distribuição do portfólio inteiro num relance, sem precisar somar
+    // números soltos de cabeça.
+    var barraHtml = mapa.slice(1).map(function (item) {
+      var fx = item[0], cor = item[2], n = item[4];
+      var pct = (n / total * 100);
+      if (pct <= 0) return '';
+      return '<div style="width:' + pct + '%;background:' + cor + '" title="' +
+        faixaPt(fx) + ': ' + n + ' (' + pct.toFixed(1) + '%)"></div>';
+    }).join('');
+    $('barraFaixas').innerHTML = barraHtml;
   }
 
   function linha(m, i) {
@@ -1982,55 +1980,88 @@ window.addEventListener('load', function () {
       'auxílio para tomada de decisão</strong>, devendo a decisão ser realizada por profissionais ' +
       'da companhia.' +
     '</div>' +
-    '<h3>1. IAC — Índice de Atratividade Comercial</h3>' +
-    '<p>Nota de 0 a 100 por município, composta por quatro blocos. A IEZ é obrigada por edital a construir rede nesses municípios — o IAC não decide se entramos, decide como priorizamos esforço comercial.</p>' +
+
+    '<p>Este documento apresenta, para qualquer executivo da companhia, os três indicadores que sustentam a priorização comercial da Ferramenta de Análise de Mercado da IEZ Telecom: o IAC (atratividade do município), o IAP (aderência do parceiro ISP) e o HHI (concentração do mercado móvel, insumo técnico usado dentro do IAC).</p>' +
+    '<p>Contexto que orienta toda a leitura deste material: a IEZ é obrigada por edital a construir rede 5G em 965 municípios de MG, ES e RJ, independentemente de qualquer análise de mercado. Os indicadores aqui descritos não decidem onde a IEZ constrói — decidem como o time comercial prioriza esforço, parceria e sequência de entrada em campo.</p>' +
+
+    '<h3>Parte 1 — IAC (Índice de Atratividade Comercial)</h3>' +
+    '<p>O IAC é uma nota de 0 a 100 por município, composta por quatro blocos. Cada bloco responde uma pergunta de negócio diferente, e tem um peso próprio na nota final.</p>' +
     '<table class="mini"><thead><tr><th>Bloco</th><th class="num">Peso</th></tr></thead><tbody>' +
-      '<tr><td>Poder de Compra — renda per capita comparada ao portfólio</td><td class="num">20%</td></tr>' +
-      '<tr><td>Oportunidade Móvel — qualidade do serviço já existente das operadoras</td><td class="num">30%</td></tr>' +
-      '<tr><td>Estrutura Competitiva — dominância do ISP local na banda larga fixa</td><td class="num">30%</td></tr>' +
-      '<tr><td>Potencial do ISP — força e escala do provedor como canal de vendas</td><td class="num">20%</td></tr>' +
+      '<tr><td>Poder de Compra</td><td class="num">20%</td></tr>' +
+      '<tr><td>Oportunidade Móvel</td><td class="num">30%</td></tr>' +
+      '<tr><td>Estrutura Competitiva</td><td class="num">30%</td></tr>' +
+      '<tr><td>Potencial do ISP</td><td class="num">20%</td></tr>' +
     '</tbody></table>' +
-    '<p style="margin-top:10px">Dentro de Oportunidade Móvel, o gap de 5G tem peso de <b>50%</b> — ausência de 5G nas concorrentes é o sinal mais forte de infraestrutura de backhaul fraca, que também degrada o 3G/4G já existente.</p>' +
+    '<p>O IAC não usa mais o tamanho da população como critério direto de atratividade — essa foi uma decisão consciente: como a entrada é obrigatória por edital, o tamanho da cidade não muda se construímos lá, só mudaria quanto investir, decisão de outro escopo. Por isso, uma cidade pequena pode superar uma cidade maior se as outras condições forem mais favoráveis.</p>' +
 
-    '<h4>Exemplo real — São Tomás de Aquino, MG</h4>' +
-    '<table class="mini"><thead><tr><th>Bloco</th><th class="num">Nota</th></tr></thead><tbody>' +
-      '<tr><td>Poder de Compra</td><td class="num">71,8</td></tr>' +
-      '<tr><td>Oportunidade Móvel</td><td class="num">68,4</td></tr>' +
-      '<tr><td>Estrutura Competitiva</td><td class="num">96,3</td></tr>' +
-      '<tr><td>Potencial do ISP</td><td class="num">78,6</td></tr>' +
-      '<tr style="font-weight:700"><td>IAC final</td><td class="num" style="color:var(--iez)">79,5</td></tr>' +
+    '<h4>Bloco 2 — Oportunidade Móvel, o mais pesado (30%)</h4>' +
+    '<p>Este bloco responde: quanto pior for hoje o serviço das grandes operadoras (Vivo, Claro, TIM), maior a nota. Ele combina quatro sinais reais da Anatel, com destaque para um deles:</p>' +
+    '<ul>' +
+      '<li>Gap de 5G (peso 50% dentro deste bloco) — se nenhuma concorrente oferece 5G no município, isso é o sinal mais forte de infraestrutura de backhaul fraca, que também degrada o serviço 3G/4G já existente. Peso elevado a pedido explícito da diretoria, com base em observação de campo.</li>' +
+      '<li>Espaço competitivo (25%) — quanto do mercado móvel NÃO está com Vivo+Claro+TIM juntas.</li>' +
+      '<li>HHI invertido (15,6%) — mede como a concentração está distribuída (ver Parte 3 deste documento).</li>' +
+      '<li>Crescimento móvel (9,4%) — tendência do mercado nos últimos 12 meses.</li>' +
+    '</ul>' +
+
+    '<h4>Bloco 3 — Estrutura Competitiva (30%)</h4>' +
+    '<p>Mede, de forma absoluta e individual — não comparada a outros municípios —, que fatia do mercado de banda larga fixa pertence a um provedor local (ISP regional) versus às grandes operadoras. Um provedor que domina 96% do mercado de uma cidade específica vale 96 pontos, sempre, independente do que acontece no resto do portfólio.</p>' +
+
+    '<h3>Exemplo real — São Tomás de Aquino, MG</h3>' +
+    '<p>População: 6.740 habitantes · PIB per capita: R$ 35.131,16 · Domicílios: 2.444</p>' +
+    '<table class="mini"><thead><tr><th>Bloco</th><th class="num">Nota</th><th class="num">Peso</th><th class="num">Contribuição</th></tr></thead><tbody>' +
+      '<tr><td>Poder de Compra</td><td class="num">71,8</td><td class="num">20%</td><td class="num">14,4 pontos</td></tr>' +
+      '<tr><td>Oportunidade Móvel</td><td class="num">68,4</td><td class="num">30%</td><td class="num">20,5 pontos</td></tr>' +
+      '<tr><td>Estrutura Competitiva</td><td class="num">96,3</td><td class="num">30%</td><td class="num">28,9 pontos</td></tr>' +
+      '<tr><td>Potencial do ISP</td><td class="num">78,6</td><td class="num">20%</td><td class="num">15,7 pontos</td></tr>' +
+      '<tr style="font-weight:700"><td>IAC FINAL</td><td class="num"></td><td class="num"></td><td class="num" style="color:var(--iez)">79,5 pontos</td></tr>' +
     '</tbody></table>' +
+    '<p>Leitura de negócio: mercado móvel dominado por Vivo (69,4%) e Claro (27,6%) — Big3 somando 99,8%. Mas o mercado de banda larga fixa é dominado por dois ISPs regionais (Giga Mais Fibra 51,5% e Netspeed 44,7%) — Claro tem apenas 0,5%. Combinação de renda acima da média para o porte, mercado móvel concentrado mas com ecossistema de ISP muito forte.</p>' +
+    '<p>Melhor parceiro identificado: Netspeed Ltda, com IAP 64,1 (peso efetivo 95% — só falta o componente de Aderência Estratégica, sem fonte de dado hoje).</p>' +
 
-    '<h4>Exemplo real — Paraisópolis, MG</h4>' +
-    '<table class="mini"><thead><tr><th>Bloco</th><th class="num">Nota</th></tr></thead><tbody>' +
-      '<tr><td>Poder de Compra</td><td class="num">75,7</td></tr>' +
-      '<tr><td>Oportunidade Móvel</td><td class="num">69,4</td></tr>' +
-      '<tr><td>Estrutura Competitiva</td><td class="num">98,5</td></tr>' +
-      '<tr><td>Potencial do ISP</td><td class="num">87,6</td></tr>' +
-      '<tr style="font-weight:700"><td>IAC final</td><td class="num" style="color:var(--iez)">83,0</td></tr>' +
+    '<h3>Exemplo real — Paraisópolis, MG</h3>' +
+    '<p>População: 20.445 habitantes · PIB per capita: R$ 37.638,35 · Domicílios: 7.878</p>' +
+    '<table class="mini"><thead><tr><th>Bloco</th><th class="num">Nota</th><th class="num">Peso</th><th class="num">Contribuição</th></tr></thead><tbody>' +
+      '<tr><td>Poder de Compra</td><td class="num">75,7</td><td class="num">20%</td><td class="num">15,1 pontos</td></tr>' +
+      '<tr><td>Oportunidade Móvel</td><td class="num">69,4</td><td class="num">30%</td><td class="num">20,8 pontos</td></tr>' +
+      '<tr><td>Estrutura Competitiva</td><td class="num">98,5</td><td class="num">30%</td><td class="num">29,6 pontos</td></tr>' +
+      '<tr><td>Potencial do ISP</td><td class="num">87,6</td><td class="num">20%</td><td class="num">17,5 pontos</td></tr>' +
+      '<tr style="font-weight:700"><td>IAC FINAL</td><td class="num"></td><td class="num"></td><td class="num" style="color:var(--iez)">83,0 pontos</td></tr>' +
     '</tbody></table>' +
+    '<p>Leitura de negócio: mercado móvel também dominado por Vivo (58,4%) e Claro (25,6%). O mercado de banda larga fixa é dominado quase por completo por um único ISP regional — Sbs-Net Telecomunicações, com 87,3% de share. Estrutura competitiva quase perfeita para a estratégia de canal da IEZ.</p>' +
+    '<p>Melhor parceiro identificado: Sbs-Net Telecomunicações, com IAP 80,6 — o maior IAP entre os dois exemplos deste documento.</p>' +
 
-    '<h3>2. IAP — Índice de Aderência de Parceiro</h3>' +
-    '<p>Avalia um ISP ESPECÍFICO dentro de um MUNICÍPIO específico — o mesmo provedor pode ter IAP alto numa cidade e baixo noutra.</p>' +
-    '<table class="mini"><thead><tr><th>Componente</th><th class="num">Peso</th></tr></thead><tbody>' +
-      '<tr><td>Força FTTH</td><td class="num">30%</td></tr>' +
-      '<tr><td>Complementaridade IEZ</td><td class="num">25%</td></tr>' +
-      '<tr><td>Crescimento (12 meses)</td><td class="num">15%</td></tr>' +
-      '<tr><td>Capacidade de Canal — presença regional qualificada</td><td class="num">15%</td></tr>' +
-      '<tr><td>Perfil Tecnológico</td><td class="num">10%</td></tr>' +
-      '<tr><td>Aderência Estratégica — sem fonte de dado hoje</td><td class="num">5%</td></tr>' +
+    '<h3>Parte 2 — IAP (Índice de Aderência de Parceiro)</h3>' +
+    '<p>Enquanto o IAC avalia o MUNICÍPIO, o IAP avalia um ISP ESPECÍFICO dentro de um município específico. O mesmo provedor pode ter IAP 80 numa cidade e IAP 30 noutra — não é uma nota fixa da empresa.</p>' +
+    '<table class="mini"><thead><tr><th>Componente</th><th>O que mede</th><th class="num">Peso</th></tr></thead><tbody>' +
+      '<tr><td>Força FTTH</td><td>Domínio do ISP no mercado local de banda larga fixa</td><td class="num">30%</td></tr>' +
+      '<tr><td>Complementaridade IEZ</td><td>Força do ISP combinada com a oportunidade móvel do município</td><td class="num">25%</td></tr>' +
+      '<tr><td>Crescimento</td><td>Variação de assinantes do ISP nos últimos 12 meses</td><td class="num">15%</td></tr>' +
+      '<tr><td>Capacidade de Canal</td><td>Presença regional qualificada — em quantos municípios o ISP é top-3 em share, e a base de assinantes correspondente</td><td class="num">15%</td></tr>' +
+      '<tr><td>Perfil Tecnológico</td><td>Se a tecnologia do ISP é FTTH (fibra) ou tecnologia inferior</td><td class="num">10%</td></tr>' +
+      '<tr><td>Aderência Estratégica</td><td>Interesse do ISP na parceria — sem fonte de dado hoje, sempre ausente</td><td class="num">5%</td></tr>' +
     '</tbody></table>' +
-    '<p style="margin-top:10px">Em 8,3% dos municípios do portfólio, o ISP com maior IAP não é o líder de mercado — pode ter melhor crescimento ou complementaridade. A ferramenta destaca isso em verde no card do município.</p>' +
+    '<p>Um princípio importante do modelo: quando um dado não existe (como Aderência Estratégica hoje), o peso dele nunca vira zero de forma automática — é redistribuído entre os componentes que têm dado real. Isso evita penalizar um ISP só porque não temos uma informação, em vez de porque ele realmente é fraco naquele ponto.</p>' +
 
-    '<h3>3. HHI — concentração do mercado móvel</h3>' +
-    '<p>Indicador técnico usado dentro da Oportunidade Móvel. Mede como a concentração está distribuída — soma do quadrado do share de cada operadora, de 0 (distribuído) a 10.000 (monopólio).</p>' +
+    '<h4>Por que um ISP em 2º ou 3º lugar em market share pode ser o melhor parceiro</h4>' +
+    '<p>O IAP não escolhe automaticamente o líder de mercado. Em 80 dos 965 municípios do portfólio (8,3%), o ISP com maior IAP não é o líder em share — porque ele pode ter melhor crescimento, melhor complementaridade com a oportunidade móvel local, ou presença regional mais forte em outros municípios. A ferramenta já destaca visualmente, em verde, qual é o melhor parceiro quando ele diverge do líder de mercado.</p>' +
+
+    '<h4>Capacidade de Canal — o componente mais recente</h4>' +
+    '<p>Até pouco tempo atrás, este componente não tinha nenhuma fonte de dado (sempre None). Agora, ele mede quantos municípios do portfólio inteiro o ISP é top-3 em participação de mercado, e soma a base de assinantes apenas nesses municípios qualificados — não a base total em todo lugar onde ele aparece, mesmo com presença irrelevante.</p>' +
+
+    '<h3>Parte 3 — HHI (Índice de concentração do mercado móvel)</h3>' +
+    '<p>O HHI (Herfindahl-Hirschman) é um indicador técnico usado dentro do bloco de Oportunidade Móvel do IAC. Ele mede como a concentração do mercado móvel está distribuída — não apenas quanto Vivo+Claro+TIM têm juntas, mas COMO esse total está repartido entre as três.</p>' +
+    '<p>Fórmula: soma do quadrado do share de cada operadora, numa escala de 0 (mercado totalmente distribuído) a 10.000 (uma operadora sozinha, monopólio absoluto).</p>' +
+
     '<h4>Cálculo real — São Tomás de Aquino</h4>' +
-    '<table class="mini"><thead><tr><th>Operadora</th><th class="num">Share</th><th class="num">Share²</th></tr></thead><tbody>' +
-      '<tr><td>Vivo</td><td class="num">69,4%</td><td class="num">4.819,0</td></tr>' +
-      '<tr><td>Claro</td><td class="num">27,6%</td><td class="num">761,9</td></tr>' +
-      '<tr><td>TIM</td><td class="num">2,8%</td><td class="num">7,9</td></tr>' +
-      '<tr style="font-weight:700"><td>HHI = soma</td><td class="num"></td><td class="num" style="color:var(--iez)">5.588,8</td></tr>' +
-    '</tbody></table>';
+    '<table class="mini"><thead><tr><th>Operadora</th><th class="num">Acessos</th><th class="num">Share</th><th class="num">Share²</th></tr></thead><tbody>' +
+      '<tr><td>Vivo</td><td class="num">4.801</td><td class="num">69,4%</td><td class="num">4.819,0</td></tr>' +
+      '<tr><td>Claro</td><td class="num">1.909</td><td class="num">27,6%</td><td class="num">761,9</td></tr>' +
+      '<tr><td>TIM</td><td class="num">194</td><td class="num">2,8%</td><td class="num">7,9</td></tr>' +
+      '<tr><td>Surf Telecom</td><td class="num">12</td><td class="num">0,2%</td><td class="num">0,0</td></tr>' +
+      '<tr style="font-weight:700"><td>HHI = SOMA</td><td class="num"></td><td class="num"></td><td class="num" style="color:var(--iez)">5.588,8</td></tr>' +
+    '</tbody></table>' +
+    '<p>HHI de 5.588,8 — mercado bem concentrado, mas não um monopólio absoluto (Claro ainda tem participação relevante). Esse valor é comparado com os outros 964 municípios do portfólio (percentil), e invertido: quanto menor a concentração relativa, maior o HHI Invertido usado na Oportunidade Móvel. Para São Tomás de Aquino, o HHI Invertido resultante foi 57,5.</p>' +
+    '<p>Por que o HHI importa além do simples "Big3 domina ou não": dois municípios podem ter a mesma soma de Vivo+Claro+TIM (por exemplo, 99%), mas em um deles uma operadora sozinha domina quase tudo, e no outro as três dividem de forma mais equilibrada. O primeiro caso representa uma barreira competitiva mais difícil de romper; o segundo, mais fragmentado, tende a ser mais fácil de disputar. O HHI captura essa diferença que olhar só para o total das três não capturaria.</p>';
 
   function abrirMetodologia() {
     var body = $('metodologiaBody');
@@ -2080,7 +2111,7 @@ window.addEventListener('load', function () {
     });
     $('clear').addEventListener('click', function () {
       $('q').value = ''; $('uf').value = '';
-      faixaAtiva = ''; renderPills();
+      faixaAtiva = ''; renderKpis();
       $('parceiro').value = ''; $('onlyGap').checked = false;
       limparFiltroIsp();
       if (obrigacoesAtivo) { obrigacoesAtivo = false; atualizarBotaoObrigacoes(); mostrarStatusObrigacoes(''); }
