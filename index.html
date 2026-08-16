@@ -502,16 +502,6 @@
   <section class="kpis" id="kpis" aria-label="Resumo por faixa de decisão"></section>
   <div class="barra-faixas" id="barraFaixas" aria-hidden="true"></div>
 
-  <details class="weights card">
-    <summary>Calibração de pesos do IAC — Índice de Atratividade Comercial <span class="sub" style="font-weight:400">— ajuste e veja o ranking reordenar</span></summary>
-    <div class="weights-body">
-      <p class="sub">Mova os controles para encontrar a combinação que reflete a estratégia. O ranking recalcula em tempo real.</p>
-      <div class="slider-grid" id="sliders"></div>
-      <div class="weights-total" id="wtotal"></div>
-      <button class="btn" id="resetWeights" style="margin-top:12px">Restaurar padrão</button>
-    </div>
-  </details>
-
   <div class="filtro-secao">
     <label class="sub secao-titulo">Filtrar por faixa de decisão</label>
     <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
@@ -1863,34 +1853,6 @@ window.addEventListener('load', function () {
   }
 
   // ---------- Controles ----------
-  function montarSliders() {
-    $('sliders').innerHTML = BLOCOS.map(function (b) {
-      return '<div class="slider-row">' +
-        '<label for="w-' + b.k + '"><span>' + b.rot + '</span><span id="wv-' + b.k + '">' + Math.round(pesos[b.k] * 100) + '%</span></label>' +
-        '<input type="range" id="w-' + b.k + '" min="0" max="60" step="1" value="' + Math.round(pesos[b.k] * 100) + '">' +
-      '</div>';
-    }).join('');
-    BLOCOS.forEach(function (b) {
-      $('w-' + b.k).addEventListener('input', function (e) {
-        pesos[b.k] = Number(e.target.value) / 100;
-        $('wv-' + b.k).textContent = e.target.value + '%';
-        atualizarTotal();
-        enriquecer(); renderKpis(); render();
-      });
-    });
-    atualizarTotal();
-  }
-
-  function atualizarTotal() {
-    var t = BLOCOS.reduce(function (s, b) { return s + pesos[b.k]; }, 0);
-    var el = $('wtotal');
-    var pct = Math.round(t * 100);
-    el.textContent = 'Soma dos pesos: ' + pct + '%' +
-      (pct === 100 ? ' — o score é normalizado, então somas diferentes de 100% não invalidam a comparação.'
-                   : ' — normalizado automaticamente para comparação.');
-    el.classList.toggle('bad', pct === 0);
-  }
-
   function preencherSelects() {
     var ufs = Array.from(new Set(dados.municipios.map(function (m) { return m.uf; }))).sort();
     $('uf').innerHTML = '<option value="">Todas</option>' +
@@ -1914,10 +1876,6 @@ window.addEventListener('load', function () {
     });
     $('btnObrigacoes').addEventListener('click', alternarObrigacoes);
     $('loadMore').addEventListener('click', function () { visiveis += PAGE; render(); });
-    $('resetWeights').addEventListener('click', function () {
-      pesos = Object.assign({}, pesosPadrao);
-      montarSliders(); enriquecer(); renderKpis(); render();
-    });
 
     document.querySelectorAll('thead th[data-k]').forEach(function (th) {
       var acionar = function () {
@@ -1973,7 +1931,6 @@ window.addEventListener('load', function () {
     pesos = Object.assign({}, pesosPadrao);
     enriquecer();
     preencherSelects();
-    montarSliders();
     renderKpis();
     render();
     ligarEventos();
