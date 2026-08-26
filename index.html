@@ -334,6 +334,20 @@
     .fonte { font-size:8.5px; }
   }
 
+  /* Fora do portfólio de obrigação */
+  .fora-na { color:var(--muted); cursor:help; }
+  /* Linha levemente recuada em contraste, sem cor semântica: não é um
+     estado ruim, é ausência de escopo. Cor de faixa aqui sugeriria juízo. */
+  tr.linha-fora td { background:rgba(0,0,0,.012); }
+  tr.linha-fora .mun { color:var(--ink-2); font-weight:500; }
+  tr.linha-fora .mun small { color:var(--muted); font-style:normal; }
+  .aviso-escopo {
+    background:var(--nodata-bg); border-left:3px solid var(--nodata);
+    border-radius:8px; padding:11px 14px; font-size:12.5px; line-height:1.5;
+    color:var(--ink-2); margin-bottom:4px;
+  }
+  .kpi-nota { font-size:11px; color:var(--ink-3); margin-top:2px; }
+
   /* Perfil do ISP no rodapé do mapa */
   .perfil-isp-grid {
     display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:8px;
@@ -1246,7 +1260,11 @@ window.addEventListener('load', function () {
     'CONDITIONAL GO':     'Avançar com Ressalvas',
     'WATCHLIST':          'Monitorar',
     'NO-GO':              'Não Avançar',
-    'INSUFFICIENT DATA':  'Dados Insuficientes'
+    'INSUFFICIENT DATA':  'Dados Insuficientes',
+    // Conceito distinto de "Dados Insuficientes": ali o município ESTÁ no
+    // portfólio e o dado falhou; aqui não há análise porque o município não
+    // faz parte da obrigação de edital.
+    'FORA_PORTFOLIO':     'Fora do portfólio'
   };
   function faixaPt(codigo) { return FAIXA_PT[codigo] || codigo; }
   var COBERTURA_MINIMA = 70; // abaixo disso não se atribui score — INSUFFICIENT DATA
@@ -1445,8 +1463,32 @@ window.addEventListener('load', function () {
     return (m.concorrencia && m.concorrencia.resumo_por_operadora || []).length;
   }
 
+  // Município fora do portfólio de obrigação: existe no estado (MG/RJ/ES)
+  // mas não está no edital 5G, então não recebe IAC, IAP nem faixa de
+  // decisão. Detecção por campo EXPLÍCITO do ETL, nunca por ausência de
+  // dados: um município do portfólio com dado faltando deve continuar
+  // caindo em "Dados Insuficientes" e aparecendo na análise, não sumir
+  // dela. Inferir por ausência confundiria as duas situações.
+  function foraDoPortfolio(m) {
+    return m.escopo === 'fora_portfolio' || m.fora_portfolio === true;
+  }
+
   function enriquecer() {
     dados.municipios.forEach(function (m) {
+      m._fora = foraDoPortfolio(m);
+      m._pop = m.demografia ? m.demografia.pop_total : null;
+      if (m._fora) {
+        // Nada de score, faixa, ISP recomendado ou obrigação: esses campos
+        // são consequência da análise comercial, que não se aplica aqui.
+        // Ficam nulos para que qualquer consumidor (tabela, comparação,
+        // ordenação) trate a ausência explicitamente em vez de exibir zero.
+        m._score = null; m._faixa = 'FORA_PORTFOLIO'; m._cls = 't-nodata';
+        m._isp = null; m._iap = null;
+        m._liderShare = null; m._liderShareDivergeDoMelhor = false;
+        m._nconc = null; m._erbsObrig = null; m._gtmProprio = false;
+        m._real = !!m.dados_reais;
+        return;
+      }
       var r = calcular(m);
       m._score = r.score; m._faixa = r.faixa; m._cls = r.cls;
       var isp = melhorIsp(m);
@@ -1456,7 +1498,6 @@ window.addEventListener('load', function () {
       m._liderShare = lider ? lider.nome : null;
       m._liderShareDivergeDoMelhor = !!(m._isp && m._liderShare && m._isp !== m._liderShare);
       m._nconc = nConcorrentes(m);
-      m._pop = m.demografia ? m.demografia.pop_total : null;
       m._erbsObrig = erbsObrigacao(m._pop);
       // Canal próprio entra em pauta quando o município é pequeno E não há ISP elegível.
       // Canal próprio agora é avaliado para todo município pequeno, com ou
@@ -1731,6 +1772,12 @@ window.addEventListener('load', function () {
     }
     var k = ordem.k, dir = ordem.dir;
     return lista.slice().sort(function (a, b) {
+      // Municípios fora do portfólio vão sempre ao fim, em qualquer coluna
+      // e direção: eles não competem no ranking comercial. Entre si ficam
+      // em ordem alfabética, que é a única ordenação que faz sentido para
+      // uma lista sem índices.
+      if (a._fora !== b._fora) return a._fora ? 1 : -1;
+      if (a._fora && b._fora) return a.municipio.localeCompare(b.municipio, 'pt-BR');
       var va, vb;
       if (k === 'score')            { va = a._score; vb = b._score; }
       else if (k === 'iap')         { va = a._iap;   vb = b._iap; }
@@ -1761,10 +1808,15 @@ window.addEventListener('load', function () {
       ? dados.municipios.filter(function (m) { return ibgesObrigacoes.has(String(m.ibge)); })
       : dados.municipios;
 
-    var cont = { 'GO':0, 'CONDITIONAL GO':0, 'WATCHLIST':0, 'NO-GO':0, 'INSUFFICIENT DATA':0 };
+    var cont = { 'GO':0, 'CONDITIONAL GO':0, 'WATCHLIST':0, 'NO-GO':0, 'INSUFFICIENT DATA':0,
+                 'FORA_PORTFOLIO':0 };
     baseContagem.forEach(function (m) { cont[m._faixa]++; });
     contagemFaixas = cont;
     var total = baseContagem.length || 1;
+    // Total do portfólio (com análise) separado do total da base: são duas
+    // perguntas diferentes e misturá-las inutilizaria os dois números. O
+    // 965 do edital continua sendo o denominador das faixas.
+    var totalPortfolio = total - cont['FORA_PORTFOLIO'];
 
     // TOTAL entra como o primeiro card — funciona como "Todas" (sem
     // filtro nenhum aplicado) e mostra a soma do portfólio inteiro.
@@ -1782,6 +1834,15 @@ window.addEventListener('load', function () {
       ['NO-GO', 'NO-GO', 'var(--nogo)', 'var(--nogo-bg)', cont['NO-GO']],
       ['INSUFFICIENT DATA', 'INSUFFICIENT DATA', 'var(--nodata)', 'var(--nodata-bg)', cont['INSUFFICIENT DATA']],
     ];
+    // Card de fora do portfólio só existe quando há município nessa
+    // condição — em base 100% portfólio ele não aparece e a tela fica
+    // idêntica à de hoje.
+    if (cont['FORA_PORTFOLIO'] > 0) {
+      mapa.push(['FORA_PORTFOLIO', 'FORA_PORTFOLIO', 'var(--nodata)', 'var(--nodata-bg)', cont['FORA_PORTFOLIO']]);
+    }
+    // Guardado para o subtexto do card Total.
+    renderKpis._totalPortfolio = totalPortfolio;
+    renderKpis._temFora = cont['FORA_PORTFOLIO'] > 0;
 
     // Os cards de KPI SÃO o filtro por faixa agora — clicar em qualquer um
     // aplica o filtro e destaca visualmente qual está ativo (fundo tintado
@@ -1794,6 +1855,7 @@ window.addEventListener('load', function () {
       '': '', 'GO': 'kpi-hover-go', 'CONDITIONAL GO': 'kpi-hover-cond',
       'WATCHLIST': 'kpi-hover-watch', 'NO-GO': 'kpi-hover-nogo',
       'INSUFFICIENT DATA': 'kpi-hover-nodata',
+      'FORA_PORTFOLIO': 'kpi-hover-nodata',
     };
 
     var htmlFaixas = mapa.map(function (item) {
@@ -1812,6 +1874,10 @@ window.addEventListener('load', function () {
         // Antes, o único card que EXPLICAVA ser um filtro era o de
         // Obrigações — justamente o que parece diferente dos outros. Os seis
         // cards de faixa não tinham nenhuma pista de que eram clicáveis.
+        (fx === '' && renderKpis._temFora
+          ? '<div class="kpi-nota">' + renderKpis._totalPortfolio + ' no portfólio + ' +
+            (total - renderKpis._totalPortfolio) + ' fora</div>'
+          : '') +
         '<div class="dica-clique">' + (ativo ? 'filtro ativo · clique para limpar' : 'clique para filtrar') + '</div>' +
         '</div></button>';
     }).join('');
@@ -1871,13 +1937,42 @@ window.addEventListener('load', function () {
   };
 
   function linha(m, i) {
+    var marcado = selecionados.indexOf(m.ibge) !== -1;
+
+    // Município fora do portfólio: as seis colunas de análise comercial
+    // ficam vazias porque os índices não foram calculados para ele — não
+    // porque o dado falhou. Um traço neutro comunica "não se aplica"; um
+    // zero ou um "sem dado" sugeriria falha de carga.
+    if (m._fora) {
+      var vazia = '<span class="fora-na" title="Não se aplica: município fora do portfólio de obrigação">—</span>';
+      return '<tr tabindex="0" data-i="' + esc(m.ibge) + '" class="linha-fora">' +
+        // Checkbox desabilitado: comparar exige IAC, IAP e faixa, que estes
+        // municípios não possuem — a matriz sairia com "sem dado" em quase
+        // toda linha, o que não é comparação.
+        '<td class="col-sel"><input type="checkbox" class="chk-comparar" disabled ' +
+          'title="Sem análise comercial: não entra na comparação" ' +
+          'aria-label="Comparação indisponível para ' + esc(nomeMunicipioFormatado(m.municipio)) + '"></td>' +
+        '<td class="rank">' + (i + 1) + '</td>' +
+        '<td class="mun">' + esc(nomeMunicipioFormatado(m.municipio)) +
+          '<small>fora do portfólio</small></td>' +
+        '<td class="col-opt">' + esc(m.uf) + '</td>' +
+        '<td class="num">' + nfmt(m._pop) + '</td>' +
+        '<td class="num col-opt">' + vazia + '</td>' +   // ERBs obrigação
+        '<td>' + vazia + '</td>' +                        // IAC
+        '<td>' + vazia + '</td>' +                        // Faixa
+        '<td class="num">' + vazia + '</td>' +            // Gap 5G
+        '<td class="num col-opt">' + vazia + '</td>' +    // Concorrentes
+        '<td class="col-opt">' + vazia + '</td>' +        // Melhor ISP
+        '<td class="num col-opt">' + vazia + '</td>' +    // IAP
+      '</tr>';
+    }
+
     var score = m._score == null
       ? '<span class="sub">sem score</span>'
       : '<div class="scorewrap"><div class="bar"><i style="width:' + m._score + '%;background:' + COR_FAIXA[m._faixa] + '"></i></div>' +
         '<span class="scoreval">' + m._score.toFixed(1) + '</span></div>';
     var gap = m.gap_5g_pct == null ? '—'
       : '<span class="gap ' + (m.gap_5g_pct === 100 ? 'gap-full' : '') + '">' + m.gap_5g_pct + '%</span>';
-    var marcado = selecionados.indexOf(m.ibge) !== -1;
     return '<tr tabindex="0" data-i="' + esc(m.ibge) + '"' + (marcado ? ' class="linha-selecionada"' : '') + '>' +
       '<td class="col-sel"><input type="checkbox" class="chk-comparar" data-sel="' + esc(m.ibge) + '"' +
         (marcado ? ' checked' : '') + ' aria-label="Comparar ' +
@@ -2026,10 +2121,15 @@ window.addEventListener('load', function () {
   }
 
   function tabelaPrestadoras(ps, m) {
+    // Fora do portfolio nao existe IAP: a coluna sai inteira em vez de
+    // ficar uma tira de tracos, e nenhuma prestadora e marcada como
+    // parceira - a nocao de parceiro recomendado nao se aplica aqui.
+    var semIap = !!m._fora;
     return '<table class="mini" style="margin-top:8px"><thead><tr><th>Prestadora</th><th class="num">Acessos</th>' +
-      '<th>Share</th><th class="num">12m</th><th class="num">IAP</th></tr></thead><tbody>' +
+      '<th>Share</th><th class="num">12m</th>' + (semIap ? '' : '<th class="num">IAP</th>') +
+      '</tr></thead><tbody>' +
       ps.map(function (p) {
-        var iapAtual = iapOficial(m, p.nome);
+        var iapAtual = semIap ? null : iapOficial(m, p.nome);
         var parceiro = iapAtual != null;
         // "Outros ISPs locais" é um AGREGADO do ETL, não um provedor. O
         // pódio já bloqueava o clique nesses nomes, mas esta tabela não —
@@ -2050,7 +2150,7 @@ window.addEventListener('load', function () {
             '<span class="num" style="width:42px">' + p.share_pct.toFixed(1) + '%</span></div></td>' +
           '<td class="num" style="color:' + (p.cresc_12m_pct >= 0 ? 'var(--go)' : 'var(--nogo)') + '">' +
             (p.cresc_12m_pct >= 0 ? '+' : '') + p.cresc_12m_pct + '%</td>' +
-          '<td class="num">' + (iapAtual == null ? '—' : iapAtual) + '</td></tr>';
+          (semIap ? '' : '<td class="num">' + (iapAtual == null ? '—' : iapAtual) + '</td>') + '</tr>';
       }).join('') + '</tbody></table>';
   }
 
@@ -2353,10 +2453,29 @@ window.addEventListener('load', function () {
     ultimoFoco = document.activeElement;
 
     $('dTitle').textContent = nomeMunicipioFormatado(m.municipio) + ' — ' + m.uf;
-    $('dSub').innerHTML = esc(m.corredor || '') + ' · cobertura de dados ' + (m.cobertura_dados_pct ?? '—') + '%' +
-      (m.dados_reais ? ' <span class="badge-real">IBGE real</span>' : '');
+    // Fora do portfolio: a cobertura de dados mede o insumo do IAC, que
+    // aqui nao existe - mostra-la sugeriria uma analise incompleta em vez
+    // de ausencia deliberada de analise. Em seu lugar, o motivo.
+    $('dSub').innerHTML = m._fora
+      ? esc(m.uf) + ' · <span class="tag t-nodata">fora do portfólio de obrigação</span>' +
+        (m.dados_reais ? ' <span class="badge-real">IBGE real</span>' : '')
+      : esc(m.corredor || '') + ' · cobertura de dados ' + (m.cobertura_dados_pct ?? '—') + '%' +
+        (m.dados_reais ? ' <span class="badge-real">IBGE real</span>' : '');
 
     var partes = [];
+
+    // Aviso de escopo: sem ele, um usuario que abre este card ve menos
+    // secoes que o normal e nao sabe se e falha de dados ou regra de
+    // negocio. Explicitar evita que reporte bug inexistente.
+    if (m._fora) {
+      partes.push(
+        '<div class="aviso-escopo">' +
+          '<b>Município fora do portfolío de obrigação.</b> ' +
+          'Está em ' + esc(m.uf) + ', mas não consta no edital 5G da IEZ, então não recebe ' +
+          'IAC, IAP nem faixa de decisão. O que aparece abaixo é o retrato de mercado ' +
+          '(IBGE, ERBs, market share), sem análise de priorização ou de parceria.' +
+        '</div>');
+    }
 
     // 0. Ficha do município — o que o IBGE já entrega hoje, sem depender de ETL
     var dg = m.demografia || {};
@@ -2391,7 +2510,13 @@ window.addEventListener('load', function () {
     // que uma lista de 5 linhas com números soltos.
     var blocosDecomp = [];
     var legendaPesos = '';
-    if (m.iac_v5 && m.iac_v5.detalhe) {
+    // Município fora do portfólio não tem IAC: decomposição, card de
+    // decisão, FWA e canal próprio são todos derivados dos índices e ficam
+    // suprimidos. Resta o retrato factual (IBGE, ERBs, market share), que
+    // não depende de análise comercial.
+    if (m._fora) {
+      blocosDecomp = [];
+    } else if (m.iac_v5 && m.iac_v5.detalhe) {
       // v5 — municípios de obrigação de edital: sem Potencial de Mercado,
       // Estrutura Competitiva redefinida (dominância de ISP na fixa),
       // "Potencial do ISP" no lugar de "ISP Mobile Channel Opportunity".
@@ -2479,7 +2604,7 @@ window.addEventListener('load', function () {
     // comercial diário a ordem correta é conclusão primeiro, justificativa
     // logo abaixo. O cálculo permanece no mesmo lugar (precisa de
     // blocosDecomp já resolvido); só a POSIÇÃO na tela muda.
-    partes.unshift(
+    if (!m._fora) partes.unshift(
       '<div class="reco" style="border-color:var(--line)">' +
         '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">' +
           '<span class="tag ' + m._cls + '" title="' + m._faixa + '">' + faixaPt(m._faixa) + '</span>' +
@@ -2512,7 +2637,11 @@ window.addEventListener('load', function () {
     var ops = (m.concorrencia && m.concorrencia.resumo_por_operadora) || [];
     var iez = m.concorrencia && m.concorrencia.iez;
     var linhasOps = '';
-    if (iez) {
+    // A linha da IEZ representa espectro adquirido no leilao para cumprir a
+    // obrigacao de edital. Em municipio fora do portfolio nao ha obrigacao
+    // e, portanto, nada a declarar - exibi-la sugeriria presenca planejada
+    // onde nao existe.
+    if (iez && !m._fora) {
       linhasOps += '<tr class="is-iez"><td>IEZ Telecom</td><td>' + iez.faixas.join(', ') + '</td>' +
                    '<td>' + iez.tecnologia_max + '</td><td class="num">—</td><td class="num">' + iez.bw_total_mhz + '</td></tr>';
     }
@@ -2600,8 +2729,10 @@ window.addEventListener('load', function () {
     var podio = top3.length
       ? '<div class="top3">' + top3.map(function (p, i) {
           var agg = AGREGADOS.test(p.nome);
-          var iapAtual = iapOficial(m, p.nome);
-          var ehMelhorParceiro = m._isp != null && p.nome === m._isp;
+          // Fora do portfolio: sem IAP e sem selo de melhor parceiro. O
+          // podio vira leitura puramente de market share.
+          var iapAtual = m._fora ? null : iapOficial(m, p.nome);
+          var ehMelhorParceiro = !m._fora && m._isp != null && p.nome === m._isp;
           var nomeHtml = agg
             ? esc(p.nome)
             : '<span class="isp-clicavel" data-isp="' + esc(p.nome) + '" tabindex="0" role="button" ' +
@@ -2642,8 +2773,12 @@ window.addEventListener('load', function () {
     );
 
     // 3a. Potencial de FWA — vale para qualquer porte de município
-    var fw = calcFwa(m);
-    if (!fw) {
+    // Suprimido fora do portfolio: o IPF alimenta a analise de oportunidade
+    // comercial, que nao se faz para esses municipios.
+    var fw = m._fora ? null : calcFwa(m);
+    if (m._fora) {
+      /* sem secao de FWA */
+    } else if (!fw) {
       partes.push(
         '<section><div class="section-title">Potencial de FWA — domicílios sem banda larga fixa</div>' +
           '<div class="state" style="padding:22px"><h3>Aguardando carga</h3>' +
@@ -3617,8 +3752,7 @@ window.addEventListener('load', function () {
 })();
 </script>
 
-<script type="application/json" id="seed">
-{
+<script type="application/json" id="seed">{
  "schema_version": "1.0",
  "generated_at": "2026-08-11T03:00:00Z",
  "dados": "demonstracao",
@@ -4636,6 +4770,233 @@ window.addEventListener('load', function () {
      }
     ]
    }
+  },
+  {
+   "ibge": "DEMO-F01",
+   "municipio": "Juiz de Fora (fora do portfólio)",
+   "uf": "MG",
+   "escopo": "fora_portfolio",
+   "dados_reais": false,
+   "concorrencia": {
+    "resumo_por_operadora": [
+     {
+      "operadora": "Vivo",
+      "n_erbs": 142,
+      "faixas": [
+       "700",
+       "1800",
+       "2100",
+       "2600",
+       "3500"
+      ],
+      "tem_35ghz": true,
+      "bw_estimada_mhz": 230,
+      "tecnologia_max": "5G NR"
+     },
+     {
+      "operadora": "Claro",
+      "n_erbs": 128,
+      "faixas": [
+       "700",
+       "1800",
+       "2100",
+       "2600",
+       "3500"
+      ],
+      "tem_35ghz": true,
+      "bw_estimada_mhz": 215,
+      "tecnologia_max": "5G NR"
+     },
+     {
+      "operadora": "TIM",
+      "n_erbs": 96,
+      "faixas": [
+       "700",
+       "1800",
+       "2600",
+       "3500"
+      ],
+      "tem_35ghz": true,
+      "bw_estimada_mhz": 190,
+      "tecnologia_max": "5G NR"
+     }
+    ]
+   },
+   "banda_larga_fixa": {
+    "acessos_total": 117060,
+    "prestadoras": [
+     {
+      "nome": "Vivo Fibra",
+      "acessos": 48210,
+      "share_pct": 41.2,
+      "cresc_12m_pct": 6.4,
+      "tecnologia": "FTTH",
+      "iap": null
+     },
+     {
+      "nome": "Claro NET",
+      "acessos": 31980,
+      "share_pct": 27.3,
+      "cresc_12m_pct": 1.8,
+      "tecnologia": "HFC",
+      "iap": null
+     },
+     {
+      "nome": "G6 Internet",
+      "acessos": 18450,
+      "share_pct": 15.8,
+      "cresc_12m_pct": 12.9,
+      "tecnologia": "FTTH",
+      "iap": null
+     },
+     {
+      "nome": "Outros ISPs locais",
+      "acessos": 18420,
+      "share_pct": 15.7,
+      "cresc_12m_pct": 4.1,
+      "tecnologia": "FTTH",
+      "iap": null
+     }
+    ]
+   },
+   "demografia": {
+    "pop_total": 540756,
+    "domicilios": 190000,
+    "urbanizacao_pct": 98.5,
+    "renda_media": 3200
+   },
+   "movel": {
+    "acessos_total": 518600,
+    "prestadoras": [
+     {
+      "nome": "Vivo",
+      "acessos": 218400,
+      "share_pct": 42.1,
+      "cresc_12m_pct": 3.2
+     },
+     {
+      "nome": "Claro",
+      "acessos": 165300,
+      "share_pct": 31.9,
+      "cresc_12m_pct": 1.1
+     },
+     {
+      "nome": "TIM",
+      "acessos": 134900,
+      "share_pct": 26.0,
+      "cresc_12m_pct": -0.8
+     }
+    ]
+   }
+  },
+  {
+   "ibge": "DEMO-F02",
+   "municipio": "Vitória (fora do portfólio)",
+   "uf": "ES",
+   "escopo": "fora_portfolio",
+   "dados_reais": false,
+   "concorrencia": {
+    "resumo_por_operadora": [
+     {
+      "operadora": "Vivo",
+      "n_erbs": 118,
+      "faixas": [
+       "700",
+       "1800",
+       "2100",
+       "2600",
+       "3500"
+      ],
+      "tem_35ghz": true,
+      "bw_estimada_mhz": 240,
+      "tecnologia_max": "5G NR"
+     },
+     {
+      "operadora": "Claro",
+      "n_erbs": 104,
+      "faixas": [
+       "700",
+       "1800",
+       "2100",
+       "2600",
+       "3500"
+      ],
+      "tem_35ghz": true,
+      "bw_estimada_mhz": 225,
+      "tecnologia_max": "5G NR"
+     },
+     {
+      "operadora": "TIM",
+      "n_erbs": 81,
+      "faixas": [
+       "700",
+       "1800",
+       "2600"
+      ],
+      "tem_35ghz": false,
+      "bw_estimada_mhz": 160,
+      "tecnologia_max": "LTE"
+     }
+    ]
+   },
+   "banda_larga_fixa": {
+    "acessos_total": 89340,
+    "prestadoras": [
+     {
+      "nome": "Claro NET",
+      "acessos": 39870,
+      "share_pct": 44.6,
+      "cresc_12m_pct": 2.2,
+      "tecnologia": "HFC",
+      "iap": null
+     },
+     {
+      "nome": "Vivo Fibra",
+      "acessos": 28110,
+      "share_pct": 31.5,
+      "cresc_12m_pct": 7.9,
+      "tecnologia": "FTTH",
+      "iap": null
+     },
+     {
+      "nome": "Outros ISPs locais",
+      "acessos": 21360,
+      "share_pct": 23.9,
+      "cresc_12m_pct": 5.3,
+      "tecnologia": "FTTH",
+      "iap": null
+     }
+    ]
+   },
+   "demografia": {
+    "pop_total": 322869,
+    "domicilios": 118000,
+    "urbanizacao_pct": 99.8,
+    "renda_media": 4100
+   },
+   "movel": {
+    "acessos_total": 315100,
+    "prestadoras": [
+     {
+      "nome": "Vivo",
+      "acessos": 142800,
+      "share_pct": 45.3,
+      "cresc_12m_pct": 2.6
+     },
+     {
+      "nome": "Claro",
+      "acessos": 104200,
+      "share_pct": 33.1,
+      "cresc_12m_pct": 0.9
+     },
+     {
+      "nome": "TIM",
+      "acessos": 68100,
+      "share_pct": 21.6,
+      "cresc_12m_pct": -1.4
+     }
+    ]
+   }
   }
  ],
  "isps": {
@@ -4662,8 +5023,7 @@ window.addEventListener('load', function () {
    }
   }
  }
-}
-</script>
+}</script>
 
 </body>
 </html>
